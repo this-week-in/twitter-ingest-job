@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-APP_NAME=feed-ingest-job
+APP_NAME=twitter-ingest-job
 JOB_NAME=${APP_NAME}
 SCHEDULER_SERVICE_NAME=scheduler-joshlong
 
@@ -14,7 +14,7 @@ cf set-health-check $APP_NAME none
 cf s | grep ${SCHEDULER_SERVICE_NAME} || cf cs scheduler-for-pcf standard ${SCHEDULER_SERVICE_NAME}
 cf bs ${APP_NAME} ${SCHEDULER_SERVICE_NAME}
 
-REDIS_NAME=feed-ingest-cache
+REDIS_NAME=twitter-ingest-cache
 cf s | grep ${REDIS_NAME} || cf cs rediscloud 100mb ${REDIS_NAME}
 cf bs ${APP_NAME} ${REDIS_NAME}
 
