@@ -47,6 +47,8 @@ class TwitterApplication
 @Configuration
 class TwitterConfiguration(val props: IngestTwitterProperties) {
 
+	// todo profiles -> threads in current design. farm work across multiple nodes to share burden, reduce threads per node.
+
 	private val profileToTags: Map<String, List<String>> = mapOf(
 			"springcentral" to listOf("spring", "pivotal", "twis", "ingest"),
 			"pivotal" to listOf("pivotal", "ingest"),
