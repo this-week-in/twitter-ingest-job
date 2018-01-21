@@ -32,7 +32,9 @@ import pinboard.PinboardClient
 import java.time.Instant
 import java.time.ZoneId
 import java.util.*
+import java.util.concurrent.Executor
 import java.util.concurrent.Executors
+import java.util.concurrent.ThreadFactory
 import java.util.function.Consumer
 
 /**
@@ -65,13 +67,19 @@ class TwitterConfiguration(val props: IngestTwitterProperties) {
 			"spencerbgibb" to listOf("spring", "ingest", "spring-boot", "spring-cloud", "ingest")
 	)
 
-	private val pool = Executors.newScheduledThreadPool(this.profileToTags.keys.size * 2)
+	private val pool = Executors.newScheduledThreadPool(this.profileToTags.keys.size * 2, { runnable ->
+		Thread(runnable).apply {
+			isDaemon = true
+		}
+	})
+
+	private val twitter = TwitterTemplate(props.consumerKey, props.consumerSecret, props.accessToken, props.accessTokenSecret)
 
 	@Bean
 	fun runner(ingestProperties: IngestTwitterProperties,
 	           ifc: IntegrationFlowContext, pc: PinboardClient,
 	           twitterConfiguration: TwitterConfiguration) = TwitterIngestRunner(
-			profileToTags, ifc, pc, twitterConfiguration, ingestProperties)
+			profileToTags, ifc, pc, taskScheduler(), twitterConfiguration, ingestProperties)
 
 	@Bean
 	fun taskScheduler(): ConcurrentTaskScheduler = ConcurrentTaskScheduler(pool)
@@ -82,14 +90,10 @@ class TwitterConfiguration(val props: IngestTwitterProperties) {
 
 	@Bean
 	@Profile("cloud")
-	fun redisConnectionFactory() = cloud()
-			.getSingletonServiceConnector(RedisConnectionFactory::class.java, null)
+	fun redisConnectionFactory() = cloud().getSingletonServiceConnector(RedisConnectionFactory::class.java, null)
 
 	@Bean(IntegrationContextUtils.METADATA_STORE_BEAN_NAME)
 	fun redisMetadataStore(rt: StringRedisTemplate) = RedisMetadataStore(rt)
-
-	private val twitter = TwitterTemplate(props.consumerKey, props.consumerSecret,
-			props.accessToken, props.accessTokenSecret)
 
 	@Bean
 	@Scope("prototype")
@@ -111,13 +115,12 @@ open class TwitterIngestRunner(
 		val profileToTags: Map<String, List<String>>,
 		val ifc: IntegrationFlowContext,
 		val pc: PinboardClient,
+		val executor: Executor,
 		val twitterConfiguration: TwitterConfiguration,
 		val ingestProperties: IngestTwitterProperties) :
 		ApplicationRunner, ApplicationEventPublisherAware {
 
 	private val log = LogFactory.getLog(javaClass)
-
-	private val executor = Executors.newScheduledThreadPool(10)
 	private var publisher: ApplicationEventPublisher? = null
 
 	override fun setApplicationEventPublisher(p0: ApplicationEventPublisher?) {
