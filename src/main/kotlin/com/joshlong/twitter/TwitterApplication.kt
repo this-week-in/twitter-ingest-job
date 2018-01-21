@@ -24,14 +24,15 @@ import org.springframework.integration.dsl.context.IntegrationFlowContext
 import org.springframework.integration.handler.GenericHandler
 import org.springframework.integration.metadata.MetadataStore
 import org.springframework.integration.twitter.inbound.UserTimelineMessageSource
+import org.springframework.scheduling.concurrent.ConcurrentTaskScheduler
 import org.springframework.social.twitter.api.Tweet
 import org.springframework.social.twitter.api.impl.TwitterTemplate
-import org.springframework.stereotype.Component
 import org.springframework.util.ReflectionUtils
 import pinboard.PinboardClient
 import java.time.Instant
 import java.time.ZoneId
 import java.util.*
+import java.util.concurrent.Executors
 import java.util.function.Consumer
 
 /**
@@ -43,6 +44,37 @@ class TwitterApplication
 
 @Configuration
 class TwitterConfiguration(val props: IngestTwitterProperties) {
+
+	private val profileToTags: Map<String, List<String>> = mapOf(
+			"springcentral" to listOf("spring", "pivotal", "twis", "ingest"),
+			"pivotal" to listOf("pivotal", "ingest"),
+			"cloudfoundry" to listOf("cloudfoundry", "twis", "cloud", "ingest"),
+			"dzone" to listOf("programming", "ingest"),
+			"springrod" to listOf("spring", "atomist", "ingest"),
+			"rob_winch" to listOf("spring", "spring-security", "security", "ingest"),
+			"springframework" to listOf("spring", "twis", "ingest"),
+			"springboot" to listOf("spring", "spring-boot", "twis", "ingest"),
+			"springcloud" to listOf("spring", "spring-cloud", "spring-boot", "twis", "ingest"),
+			"springsecurity" to listOf("spring", "spring-security", "security", "ingest"),
+			"springdata" to listOf("spring", "spring-data", "twis", "ingest"),
+			"java" to listOf("java", "ingest"),
+			"wattersjames" to listOf("cloudfoundry", "pivotal", "spring", "ingest"),
+			"olivergierke" to listOf("spring", "ingest", "spring-data", "ingest"),
+			"phillip_webb" to listOf("spring", "ingest", "spring-boot", "ingest"),
+			"david_syer" to listOf("spring", "ingest", "spring-boot", "spring-cloud", "ingest"),
+			"spencerbgibb" to listOf("spring", "ingest", "spring-boot", "spring-cloud", "ingest")
+	)
+
+	private val pool = Executors.newScheduledThreadPool(this.profileToTags.keys.size * 2)
+
+	@Bean
+	fun runner(ingestProperties: IngestTwitterProperties,
+	           ifc: IntegrationFlowContext, pc: PinboardClient,
+	           twitterConfiguration: TwitterConfiguration) = TwitterIngestRunner(
+			profileToTags, ifc, pc, twitterConfiguration, ingestProperties)
+
+	@Bean
+	fun taskScheduler(): ConcurrentTaskScheduler = ConcurrentTaskScheduler(pool)
 
 	@Bean
 	@Profile("cloud")
@@ -75,15 +107,17 @@ class IngestTwitterProperties(
 )
 
 
-@Component
-class TwitterIngestRunner(val ifc: IntegrationFlowContext,
-                          val pc: PinboardClient,
-                          val twitterConfiguration: TwitterConfiguration,
-                          val ingestProperties: IngestTwitterProperties) :
+open class TwitterIngestRunner(
+		val profileToTags: Map<String, List<String>>,
+		val ifc: IntegrationFlowContext,
+		val pc: PinboardClient,
+		val twitterConfiguration: TwitterConfiguration,
+		val ingestProperties: IngestTwitterProperties) :
 		ApplicationRunner, ApplicationEventPublisherAware {
 
 	private val log = LogFactory.getLog(javaClass)
 
+	private val executor = Executors.newScheduledThreadPool(10)
 	private var publisher: ApplicationEventPublisher? = null
 
 	override fun setApplicationEventPublisher(p0: ApplicationEventPublisher?) {
@@ -91,51 +125,37 @@ class TwitterIngestRunner(val ifc: IntegrationFlowContext,
 	}
 
 	protected fun subscribeToTweetsFromProfile(profile: String, tags: List<String>) {
-		val id = profile.filter { it.isLetterOrDigit() }
-		val msgSource = this.twitterConfiguration.timelineMessageSource(profile, id)
-		val flow = IntegrationFlows
-				.from(msgSource, Consumer<SourcePollingChannelAdapterSpec> { it.poller({ it.fixedRate(ingestProperties.pollerRate) }) })
-				.handle(GenericHandler<Tweet> { msg, headers ->
-					log.debug("processing incoming tweet from ${msg.user}.")
-					processTweet(profile, msg, tags)
-				})
-				.get()
-		ifc.registration(flow)
-				.id(id)
-				.register()
+
+		executor.execute {
+			val id = profile.filter { it.isLetterOrDigit() }
+			log.debug("subscribing to ${profile}.")
+			val msgSource = this.twitterConfiguration.timelineMessageSource(profile, id)
+			val flow = IntegrationFlows
+					.from(msgSource, Consumer<SourcePollingChannelAdapterSpec> { it.poller({ it.fixedRate(ingestProperties.pollerRate) }) })
+					.handle(GenericHandler<Tweet> { msg, headers ->
+						processTweet(profile, msg, tags)
+					})
+					.get()
+			ifc.registration(flow)
+					.id(id)
+					.register()
+		}
+
 	}
 
 	override fun run(args: ApplicationArguments) {
-		val profileToTags = mapOf(
-				"springcentral" to listOf("spring", "pivotal", "twis", "ingest"),
-				"pivotal" to listOf("pivotal", "ingest"),
-				"cloudfoundry" to listOf("cloudfoundry", "twis", "cloud", "ingest"),
-				"dzone" to listOf("programming", "ingest"),
-				"springrod" to listOf("spring", "atomist", "ingest"),
-				"rob_winch" to listOf("spring", "spring-security", "security", "ingest"),
-				"springframework" to listOf("spring", "twis", "ingest"),
-				"springboot" to listOf("spring", "spring-boot", "twis", "ingest"),
-				"springcloud" to listOf("spring", "spring-cloud", "spring-boot", "twis", "ingest"),
-				"springsecurity" to listOf("spring", "spring-security", "security", "ingest"),
-				"springdata" to listOf("spring", "spring-data", "twis", "ingest"),
-				"java" to listOf("java", "ingest"),
-				"wattersjames" to listOf("cloudfoundry", "pivotal", "spring", "ingest"),
-				"olivergierke" to listOf("spring", "ingest", "spring-data", "ingest"),
-				"phillip_webb" to listOf("spring", "ingest", "spring-boot", "ingest"),
-				"david_syer" to listOf("spring", "ingest", "spring-boot", "spring-cloud", "ingest"),
-				"spencerbgibb" to listOf("spring", "ingest", "spring-boot", "spring-cloud", "ingest")
-		)
 		profileToTags.forEach {
 			this.subscribeToTweetsFromProfile(it.key, it.value)
 		}
 	}
 
 	fun processTweet(profile: String, tweet: Tweet, incomingTags: List<String>) {
-		try {
-			val link = "https://twitter.com/${tweet.fromUser}/status/${tweet.id}"
-			val retweetedUser = tweet.retweetedStatus?.fromUser ?: ""
-			val pbMsg =
-					"""
+		log.debug("processing incoming tweet from @${tweet.user.screenName}..")
+
+		val link = "https://twitter.com/${tweet.fromUser}/status/${tweet.id}"
+		val retweetedUser = tweet.retweetedStatus?.fromUser ?: ""
+		val pbMsg =
+				"""
 						| @${tweet.fromUser} ${if (tweet.isRetweet) "re" else ""}tweeted ($link) ${if (tweet.isRetweet) "${retweetedUser}'s tweet" else ""}:
 						|
 						| ${tweet.text.trim()}
@@ -146,10 +166,11 @@ class TwitterIngestRunner(val ifc: IntegrationFlowContext,
 						|
 						| ${tweet.entities.mentions.map { "@${it.screenName.trim()}" }.joinToString(" ").trim()}
 						"""
-							.trimMargin("|")
-							.trim()
-
+						.trimMargin("|")
+						.trim()
+		try {
 			if (pc.getPosts(url = link).posts.isEmpty()) {
+				log.debug("fetched $link .")
 
 				log.debug(pbMsg)
 
@@ -163,17 +184,20 @@ class TwitterIngestRunner(val ifc: IntegrationFlowContext,
 						}
 						.map { it.toLowerCase() }
 
-				val post = pc.addPost(url = link, description = pbMsg,
-						tags = tags.toTypedArray(), dt = tweet.createdAt ?: Date(), extended = pbMsg,
+				log.debug("about to call addPost() for URL $link")
+				val date = tweet.createdAt ?: Date()
+				val post = pc.addPost(url = link, description = link,
+						tags = tags.toTypedArray(), dt = date, extended = pbMsg,
 						shared = false, toread = false, replace = false)
 				if (post) {
-					log.info("added $link ('$link') to Pinboard @ ${Instant.now().atZone(ZoneId.systemDefault())}")
+					log.debug("added $link to Pinboard @ ${Instant.now().atZone(ZoneId.systemDefault())}")
 				}
+			} else {
+				log.debug("processed ${link} already.")
 			}
-
 			this.publisher!!.publishEvent(HeartbeatEvent())
 		} catch (ex: Exception) {
-			log.error(ex)
+			log.error("couldn't process $link", ex)
 			ReflectionUtils.rethrowException(ex)
 		}
 	}

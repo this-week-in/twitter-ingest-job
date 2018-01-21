@@ -1,5 +1,7 @@
 package org.springframework.integration.twitter.inbound;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.springframework.social.twitter.api.Tweet;
 import org.springframework.social.twitter.api.Twitter;
 import org.springframework.util.Assert;
@@ -15,6 +17,8 @@ public class UserTimelineMessageSource extends AbstractTwitterMessageSource<Twee
 
 	private final String profileId;
 
+	private final Log log = LogFactory.getLog(getClass());
+
 	public UserTimelineMessageSource(String profileId, Twitter twitter, String metadataKey) {
 		super(twitter, metadataKey);
 		this.profileId = profileId;
@@ -23,6 +27,7 @@ public class UserTimelineMessageSource extends AbstractTwitterMessageSource<Twee
 
 	@Override
 	protected List<Tweet> pollForTweets(long sinceId) {
+		this.log.debug("polling for tweets for @" + this.profileId + ".");
 		return this.getTwitter().timelineOperations().getUserTimeline(this.profileId, this.getPageSize(), sinceId, 0);
 	}
 }
