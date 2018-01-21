@@ -34,7 +34,6 @@ import java.time.ZoneId
 import java.util.*
 import java.util.concurrent.Executor
 import java.util.concurrent.Executors
-import java.util.concurrent.ThreadFactory
 import java.util.function.Consumer
 
 /**
@@ -145,7 +144,6 @@ open class TwitterIngestRunner(
 					.id(id)
 					.register()
 		}
-
 	}
 
 	override fun run(args: ApplicationArguments) {
