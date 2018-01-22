@@ -111,7 +111,6 @@ class IngestTwitterProperties(
 		var pollerRate: Long = 1000 * 60 * 15 // 15 minutes
 )
 
-
 open class TwitterIngestRunner(
 		val profileToTags: Map<String, List<String>>,
 		val ifc: IntegrationFlowContext,
