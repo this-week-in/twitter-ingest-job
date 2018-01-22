@@ -124,8 +124,8 @@ open class TwitterIngestRunner(
 	private val log = LogFactory.getLog(javaClass)
 	private var publisher: ApplicationEventPublisher? = null
 
-	override fun setApplicationEventPublisher(p0: ApplicationEventPublisher?) {
-		this.publisher = p0
+	override fun setApplicationEventPublisher(ap: ApplicationEventPublisher?) {
+		this.publisher = ap
 	}
 
 	protected fun subscribeToTweetsFromProfile(profile: String, tags: List<String>) {
@@ -154,27 +154,26 @@ open class TwitterIngestRunner(
 
 	fun processTweet(profile: String, tweet: Tweet, incomingTags: List<String>) {
 		log.debug("processing incoming tweet from @${tweet.user.screenName}..")
-
 		val link = "https://twitter.com/${tweet.fromUser}/status/${tweet.id}"
 		val retweetedUser = tweet.retweetedStatus?.fromUser ?: ""
 		val pbMsg =
 				"""
-						| @${tweet.fromUser} ${if (tweet.isRetweet) "re" else ""}tweeted ($link) ${if (tweet.isRetweet) "${retweetedUser}'s tweet" else ""}:
+						|@${tweet.fromUser} ${if (tweet.isRetweet) "re" else ""}tweeted ($link) ${if (tweet.isRetweet) "${retweetedUser}'s tweet" else ""}:
 						|
-						| ${tweet.text.trim()}
+						|${tweet.text.trim()}
 						|
-						| ${tweet.entities.hashTags.map { "#${it.text.trim()}" }.joinToString(" ").trim()}
+						|${tweet.entities.hashTags.map { "#${it.text.trim()}" }.joinToString(" ").trim()}
 						|
-						| ${tweet.entities.urls.map { it.expandedUrl.trim() }.joinToString(" ").trim()}
+						|${tweet.entities.urls.map { it.expandedUrl.trim() }.joinToString(" ").trim()}
 						|
-						| ${tweet.entities.mentions.map { "@${it.screenName.trim()}" }.joinToString(" ").trim()}
-						"""
+						|${tweet.entities.mentions.map { "@${it.screenName.trim()}" }.joinToString(" ").trim()}
+				"""
 						.trimMargin("|")
 						.trim()
 		try {
 			if (pc.getPosts(url = link).posts.isEmpty()) {
-				log.debug("fetched $link .")
 
+				log.debug("fetched $link .")
 				log.debug(pbMsg)
 
 				val tags = mutableSetOf(profile, "ingest", "twitter")
@@ -199,7 +198,8 @@ open class TwitterIngestRunner(
 				log.debug("processed ${link} already.")
 			}
 			this.publisher!!.publishEvent(HeartbeatEvent())
-		} catch (ex: Exception) {
+		}
+		catch (ex: Exception) {
 			log.error("couldn't process $link", ex)
 			ReflectionUtils.rethrowException(ex)
 		}

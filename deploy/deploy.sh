@@ -14,7 +14,7 @@ cf set-health-check $APP_NAME none
 cf s | grep ${SCHEDULER_SERVICE_NAME} || cf cs scheduler-for-pcf standard ${SCHEDULER_SERVICE_NAME}
 cf bs ${APP_NAME} ${SCHEDULER_SERVICE_NAME}
 
-REDIS_NAME=twitter-ingest-cache
+REDIS_NAME=redis-cache
 cf s | grep ${REDIS_NAME} || cf cs rediscloud 100mb ${REDIS_NAME}
 cf bs ${APP_NAME} ${REDIS_NAME}
 
