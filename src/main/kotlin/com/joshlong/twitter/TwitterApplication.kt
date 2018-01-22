@@ -37,6 +37,9 @@ import java.util.concurrent.Executors
 import java.util.function.Consumer
 
 /**
+ * Ingests interesting Twitter feeds to Pinboard. The Twitter API is rate-limited, so it's important
+ * that this thread run only every so often. I have it set to run every 15 minutes. YMMW.
+ *
  * @author <a href="mailto:josh@joshlong.com">Josh Long</a>
  */
 @SpringBootApplication
@@ -131,7 +134,7 @@ open class TwitterIngestRunner(
 
 		executor.execute {
 			val id = profile.filter { it.isLetterOrDigit() }
-			log.debug("subscribing to ${profile}.")
+			log.info("${profile} subscription thread started at ${Instant.now().atZone(ZoneId.systemDefault())}")
 			val msgSource = this.twitterConfiguration.timelineMessageSource(profile, id)
 			val flow = IntegrationFlows
 					.from(msgSource, Consumer<SourcePollingChannelAdapterSpec> { it.poller({ it.fixedRate(ingestProperties.pollerRate) }) })
@@ -142,6 +145,7 @@ open class TwitterIngestRunner(
 			ifc.registration(flow)
 					.id(id)
 					.register()
+			log.info("${profile} subscription thread finished at ${Instant.now().atZone(ZoneId.systemDefault())}")
 		}
 	}
 
@@ -197,8 +201,7 @@ open class TwitterIngestRunner(
 				log.debug("processed ${link} already.")
 			}
 			this.publisher!!.publishEvent(HeartbeatEvent())
-		}
-		catch (ex: Exception) {
+		} catch (ex: Exception) {
 			log.error("couldn't process $link", ex)
 			ReflectionUtils.rethrowException(ex)
 		}
