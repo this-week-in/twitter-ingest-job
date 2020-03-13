@@ -1,2 +1,3 @@
-# bulletin-feed-ingest
-Ingests new RSS or Atom feed elements
+# Twitter Ingest Job
+
+Ingests tweets from people's timelines.
