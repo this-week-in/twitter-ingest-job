@@ -1,40 +1,20 @@
 package com.joshlong.twitter
 
-import com.joshlong.jobs.watchdog.HeartbeatEvent
-import org.apache.commons.logging.LogFactory
-import org.springframework.boot.ApplicationArguments
-import org.springframework.boot.ApplicationRunner
+//import org.springframework.social.twitter.api.Tweet
+//import org.springframework.social.twitter.api.impl.TwitterTemplate
 import org.springframework.boot.autoconfigure.SpringBootApplication
 import org.springframework.boot.builder.SpringApplicationBuilder
 import org.springframework.boot.context.properties.ConfigurationProperties
 import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.cloud.CloudFactory
-import org.springframework.context.ApplicationEventPublisher
-import org.springframework.context.ApplicationEventPublisherAware
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import org.springframework.context.annotation.Profile
-import org.springframework.context.annotation.Scope
 import org.springframework.data.redis.connection.RedisConnectionFactory
 import org.springframework.data.redis.core.StringRedisTemplate
 import org.springframework.integration.context.IntegrationContextUtils
-import org.springframework.integration.dsl.IntegrationFlows
-import org.springframework.integration.dsl.SourcePollingChannelAdapterSpec
-import org.springframework.integration.dsl.context.IntegrationFlowContext
-import org.springframework.integration.handler.GenericHandler
 import org.springframework.integration.metadata.MetadataStore
-import org.springframework.integration.twitter.inbound.UserTimelineMessageSource
-import org.springframework.scheduling.concurrent.ConcurrentTaskScheduler
-import org.springframework.social.twitter.api.Tweet
-import org.springframework.social.twitter.api.impl.TwitterTemplate
-import org.springframework.util.ReflectionUtils
-import pinboard.PinboardClient
-import java.time.Instant
-import java.time.ZoneId
-import java.util.*
-import java.util.concurrent.Executor
 import java.util.concurrent.Executors
-import java.util.function.Consumer
 
 /**
  * Ingests interesting Twitter feeds to Pinboard. The Twitter API is rate-limited, so it's important
@@ -71,22 +51,22 @@ class TwitterConfiguration(val props: IngestTwitterProperties) {
 			"spencerbgibb" to listOf("spring", "ingest", "spring-boot", "spring-cloud", "ingest")
 	)
 
-	private val pool = Executors.newScheduledThreadPool(this.profileToTags.keys.size * 2, { runnable ->
+	private val pool = Executors.newScheduledThreadPool(this.profileToTags.keys.size * 2) { runnable ->
 		Thread(runnable).apply {
 			isDaemon = true
 		}
-	})
+	}
 
-	private val twitter = TwitterTemplate(props.consumerKey, props.consumerSecret, props.accessToken, props.accessTokenSecret)
+//	private val twitter = TwitterTemplate(props.consumerKey, props.consumerSecret, props.accessToken, props.accessTokenSecret)
+//
+//	@Bean
+//	fun runner(ingestProperties: IngestTwitterProperties,
+//	           ifc: IntegrationFlowContext, pc: PinboardClient,
+//	           twitterConfiguration: TwitterConfiguration) =
+////			TwitterIngestRunner(profileToTags, ifc, pc, taskScheduler(), twitterConfiguration, ingestProperties)
 
-	@Bean
-	fun runner(ingestProperties: IngestTwitterProperties,
-	           ifc: IntegrationFlowContext, pc: PinboardClient,
-	           twitterConfiguration: TwitterConfiguration) = TwitterIngestRunner(
-			profileToTags, ifc, pc, taskScheduler(), twitterConfiguration, ingestProperties)
-
-	@Bean
-	fun taskScheduler(): ConcurrentTaskScheduler = ConcurrentTaskScheduler(pool)
+//	@Bean
+//	fun taskScheduler(): ConcurrentTaskScheduler = ConcurrentTaskScheduler(pool)
 
 	@Bean
 	@Profile("cloud")
@@ -99,10 +79,9 @@ class TwitterConfiguration(val props: IngestTwitterProperties) {
 	@Bean(IntegrationContextUtils.METADATA_STORE_BEAN_NAME)
 	fun redisMetadataStore(rt: StringRedisTemplate) = RedisMetadataStore(rt)
 
-	@Bean
-	@Scope("prototype")
-	fun timelineMessageSource(profile: String, id: String) =
-			UserTimelineMessageSource(profile, this.twitter, id)
+//	@Bean
+//	@Scope("prototype")
+//	fun timelineMessageSource(profile: String, id: String) = 			UserTimelineMessageSource(profile, this.twitter, id)
 }
 
 @ConfigurationProperties("ingest")
@@ -113,6 +92,7 @@ class IngestTwitterProperties(
 		var accessTokenSecret: String? = null,
 		var pollerRate: Long = 1000 * 60 * 15 // 15 minutes
 )
+/*
 
 open class TwitterIngestRunner(
 		val profileToTags: Map<String, List<String>>,
@@ -207,7 +187,7 @@ open class TwitterIngestRunner(
 		}
 	}
 }
-
+*/
 
 class RedisMetadataStore(val stringRedisTemplate: StringRedisTemplate) : MetadataStore {
 
