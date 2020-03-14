@@ -1,6 +1,7 @@
 package experiment
 
 import com.fasterxml.jackson.databind.JsonNode
+import com.fasterxml.jackson.databind.ObjectMapper
 import org.springframework.boot.autoconfigure.SpringBootApplication
 import org.springframework.boot.context.event.ApplicationReadyEvent
 import org.springframework.boot.runApplication
@@ -18,14 +19,16 @@ import org.springframework.http.client.ClientHttpResponse
 import org.springframework.util.LinkedMultiValueMap
 import org.springframework.web.client.RestTemplate
 import java.net.URI
+import java.net.URL
 import java.nio.charset.Charset
+import java.text.SimpleDateFormat
+import java.util.*
 import java.util.concurrent.atomic.AtomicReference
 
 @SpringBootApplication
 class TwitterClientApplication {
 
 
-	@Bean
 	fun authenticatedRestTemplate(env: Environment) = RestTemplate()
 			.apply {
 				val apiKey = env["TWITTER_ORGANIZER_CLIENT_KEY"]!!
@@ -34,8 +37,38 @@ class TwitterClientApplication {
 			}
 
 	@Bean
-	fun twitterClient(rt: RestTemplate) = TwitterClient(rt)
+	fun twitterClient(env: Environment) = TwitterClient(authenticatedRestTemplate(env))
 }
+
+
+data class Hashtag(val text: String)
+
+data class UserMention(val screenName: String, val name: String, val id: String)
+
+data class Entities(
+		val hashtags: List<Hashtag>,
+		val userMentions: List<Any>,
+		val urls: List<URL>
+)
+
+data class Tweet(
+		val createdAt: Date,
+		val id: String,
+		val text: String,
+		val truncated: Boolean,
+		val inReplyToStatusId: String?,
+		val entities: Entities,
+		val user: User
+)
+
+data class User(
+		val id: String,
+		val name: String,
+		val screenName: String,
+		val location: String,
+		val description: String,
+		val url: URL?
+)
 
 
 //https://developer.twitter.com/en/docs/basics/authentication/oauth-2-0/bearer-tokens
@@ -45,15 +78,85 @@ class TwitterClient(
 
 	private val userTimelineUrl = "https://api.twitter.com/1.1/statuses/user_timeline.json"
 
-	private fun timelineFor(username: String) {
+	private fun <T> collectionFromAttribute(json: JsonNode, attribute: String, extractor: (JsonNode) -> T): List<T> {
+		val data = mutableListOf<T>()
+		if (!json.has(attribute)) {
+			return data
+		}
+		json[attribute].forEach {
+			data.add(extractor(it))
+		}
+		return data
+	}
+
+	private fun buildHashtags(json: JsonNode) = collectionFromAttribute(json, "hashtags") { Hashtag(it["text"].textValue()) }
+
+	private fun buildUserMentions(json: JsonNode): List<UserMention> {
+		return collectionFromAttribute(json, "user_mentions") {
+			UserMention(it["screen_name"].textValue(), it["name"].textValue(), it["id_str"].textValue())
+		}
+	}
+
+	private fun buildUrls(json: JsonNode): List<URL> = collectionFromAttribute(json, "urls") { URL(it["expanded_url"].textValue()) }
+
+	private fun buildEntities(json: JsonNode): Entities {
+		return Entities(buildHashtags(json), buildUserMentions(json), buildUrls(json))
+	}
+
+	private fun <T> propertyFor(json: JsonNode,
+	                            attr: String,
+	                            converter: (JsonNode) -> T,
+	                            default: () -> T) =
+			if (json.has(attr))
+				converter(json[attr])
+			else default()
+
+	private fun buildUser(jsonNode: JsonNode): User {
+		val url = propertyFor(jsonNode, "url", { URL(it.textValue()) }, { null })
+		return User(
+				jsonNode["id_str"].textValue(),
+				jsonNode["name"].textValue(),
+				jsonNode["screen_name"].textValue(),
+				jsonNode["location"].textValue(),
+				jsonNode["description"].textValue(),
+				url
+		)
+	}
+
+	private fun parseJson(json: String): List<Tweet> {
+		val tweets = mutableListOf<Tweet>()
+		val jsonNode: JsonNode = objectMapper.readTree(json)
+		jsonNode.forEach { tweetNode ->
+			println(tweetNode.toPrettyString())
+			val tweet = Tweet(
+					this.formatter.parse(tweetNode["created_at"].textValue()),
+					tweetNode["id_str"].textValue(),
+					tweetNode["text"].textValue(),
+					java.lang.Boolean.parseBoolean(tweetNode["truncated"].textValue()),
+					tweetNode["in_reply_to_status_id_str"].textValue(),
+					buildEntities(tweetNode["entities"]),
+					buildUser(tweetNode["user"])
+			)
+			tweets.add(tweet)
+		}
+		return tweets
+	}
+
+	private val formatter = SimpleDateFormat("EEE MMM d HH:mm:ss ZZ yyyy")
+	private val objectMapper = ObjectMapper()
+
+	fun getUserTimeline(username: String): List<Tweet> {
 		val uri = "${userTimelineUrl}?screen_name=${username}"
-		val entity = this.restTemplate.getForEntity(uri, String::class.java)
-		println(entity.body)
+		val json = restTemplate.getForEntity(uri, String::class.java).body!!
+		/*FileReader("${System.getProperty("user.home")}/Desktop/tweets.json").use {
+			val json = it.readText()
+			return parseJson(json)
+		}*/
+		return parseJson(json)
 	}
 
 	override fun onApplicationEvent(event: ApplicationReadyEvent) {
-		timelineFor("starbuxman")
-		timelineFor("springrod")
+		getUserTimeline("starbuxman").forEach { println(it) }
 	}
 
 }
@@ -82,10 +185,8 @@ class BearerTokenInterceptor(
 		return execution.execute(request, body)
 	}
 
-	private fun obtainToken(
-			restTemplate: RestTemplate,
-			key: String,
-			secret: String): String {
+	private fun obtainToken(restTemplate: RestTemplate, key: String, secret: String):
+			String {
 
 		if (!shouldRefreshToken()) {
 			return this.accessTokenReference.get()
