@@ -44,21 +44,6 @@
             <artifactId>commons-pool2</artifactId>
             <version>${commons-pool2.version}</version>
         </dependency>
-        <!--    <dependency>
-                <groupId>org.springframework.com.joshlong.twitter.integration</groupId>
-                <artifactId>spring-com.joshlong.twitter.integration-social-twitter</artifactId>
-                <version>${spring-com.joshlong.twitter.integration.version}</version>
-            </dependency>-->
-
-     <!--   <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-security</artifactId>
-        </dependency>-->
-        <dependency>
-            <groupId>org.springframework.social</groupId>
-            <artifactId>spring-social-twitter</artifactId>
-            <version>1.1.2.RELEASE</version>
-        </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-integration</artifactId>
@@ -75,7 +60,6 @@
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-data-redis</artifactId>
         </dependency>
-
         <dependency>
             <groupId>com.joshlong</groupId>
             <artifactId>pinboard-client</artifactId>
