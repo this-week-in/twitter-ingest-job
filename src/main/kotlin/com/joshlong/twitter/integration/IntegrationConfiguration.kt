@@ -27,7 +27,7 @@ class IntegrationConfiguration {
 			"springcentral" to listOf("spring", "pivotal", "twis", "ingest"),
 			"pivotal" to listOf("pivotal", "ingest"),
 			"cloudfoundry" to listOf("cloudfoundry", "twis", "cloud", "ingest"),
-			"dzone" to listOf("programming", "ingest"),
+//			"dzone" to listOf("programming", "ingest"),
 			"springrod" to listOf("spring", "atomist", "ingest"),
 			"rob_winch" to listOf("spring", "spring-security", "security", "ingest"),
 			"springframework" to listOf("spring", "twis", "ingest"),

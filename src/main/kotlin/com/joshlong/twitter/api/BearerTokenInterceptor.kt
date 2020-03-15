@@ -41,7 +41,7 @@ class BearerTokenInterceptor(private val key: String, private val secret: String
 					contentType = MediaType.APPLICATION_JSON
 					val encodedCredentials = HttpHeaders.encodeBasicAuth(key, secret, Charset.defaultCharset())
 					if (!containsKey(HttpHeaders.AUTHORIZATION)) {
-						setBasicAuth(encodedCredentials);
+						setBasicAuth(encodedCredentials)
 					}
 				}
 		val uri = "https://api.twitter.com/oauth2/token?grant_type=client_credentials"

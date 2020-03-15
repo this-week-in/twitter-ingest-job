@@ -2,10 +2,11 @@ package com.joshlong.twitter.api
 
 import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.ObjectMapper
-import java.io.FileWriter
+import org.apache.commons.logging.LogFactory
 import java.lang.Boolean
 import java.net.URL
 import java.text.SimpleDateFormat
+import java.util.*
 
 
 /**
@@ -17,8 +18,11 @@ import java.text.SimpleDateFormat
  */
 open class BaseTwitterClient(private val tweetProducer: (String, Long) -> String) : TwitterClient {
 
-	private val formatter = SimpleDateFormat("EEE MMM d HH:mm:ss ZZ yyyy")
+	private val log = LogFactory.getLog(BaseTwitterClient::class.java)
+	private val formatterString = "EEE MMM d HH:mm:ss ZZ yyyy"
 	private val objectMapper = ObjectMapper()
+
+	private val formatter = SimpleDateFormat(formatterString)
 
 	override fun getUserTimeline(username: String, sinceId: Long): List<Tweet> = parseJson(tweetProducer(username, sinceId))
 
@@ -47,19 +51,37 @@ open class BaseTwitterClient(private val tweetProducer: (String, Long) -> String
 		)
 	}
 
-	private fun logJson(str: String) {
-		FileWriter("${System.getenv()["HOME"]}/Desktop/tweets.json").use {
-			it.write(str)
-		}
+	private fun log(msg: String) {
+		if (log.isDebugEnabled) log.debug(msg)
 	}
 
 	private fun parseJson(json: String): List<Tweet> {
 		val tweets = mutableListOf<Tweet>()
 		val jsonNode: JsonNode = objectMapper.readTree(json)
-//		logJson(jsonNode.textValue())
+
 		jsonNode.forEach { tweetNode ->
+			log("---------------")
+			val createdAt: Date =
+					if (tweetNode.has("created_at")) {
+						val textValue = tweetNode["created_at"].textValue()
+						log("the value is $textValue")
+						try {
+							synchronized(this.formatter) {
+								val d = formatter.parse(textValue)
+								log("parsed to $d")
+								d
+							}
+						} catch (ex: Exception) {
+							log("couldn't parse $textValue!")
+							Date()
+						}
+					} else {
+						log("there is no date!")
+						Date()
+					}
+
 			val tweet = Tweet(
-					this.formatter.parse(tweetNode["created_at"].textValue()),
+					createdAt,
 					java.lang.Long.parseLong(tweetNode["id_str"].textValue()),
 					tweetNode["text"].textValue(),
 					Boolean.parseBoolean(tweetNode["truncated"].textValue()),
@@ -68,6 +90,7 @@ open class BaseTwitterClient(private val tweetProducer: (String, Long) -> String
 					buildUser(tweetNode["user"])
 			)
 			tweets.add(tweet)
+			log("---------------")
 		}
 		return tweets
 	}

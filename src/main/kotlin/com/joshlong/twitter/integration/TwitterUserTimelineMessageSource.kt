@@ -10,7 +10,7 @@ import org.springframework.messaging.Message
 import org.springframework.messaging.MessagingException
 import org.springframework.util.CollectionUtils
 import org.springframework.util.StringUtils
-import java.util.Comparator
+import java.util.*
 import java.util.concurrent.LinkedBlockingQueue
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicLong
@@ -84,13 +84,13 @@ class TwitterUserTimelineMessageSource(
 	private fun refreshTweetQueueIfNecessary() {
 		try {
 			if (tweets.size <= this.prefetchThreshold) {
-				val tweets: List<Tweet> = twitterClient.getUserTimeline(username, lastEnqueuedId.get() )
+				val tweets: List<Tweet> = twitterClient.getUserTimeline(username, lastEnqueuedId.get())
 				if (!CollectionUtils.isEmpty(tweets)) {
 					enqueueAll(tweets)
 				}
 			}
 		} catch (exception: Exception) {
-			throw MessagingException("failed while polling Twitter", exception)
+			throw MessagingException("failed while polling Twitter for user $username", exception)
 		}
 	}
 

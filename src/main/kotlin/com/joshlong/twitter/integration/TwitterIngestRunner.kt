@@ -14,6 +14,7 @@ import org.springframework.integration.dsl.context.IntegrationFlowContext
 import org.springframework.integration.handler.GenericHandler
 import org.springframework.integration.metadata.MetadataStore
 import org.springframework.util.ReflectionUtils
+import pinboard.Bookmarks
 import pinboard.PinboardClient
 import java.time.Instant
 import java.time.ZoneId
@@ -60,7 +61,7 @@ class TwitterIngestRunner(
 		}
 	}
 
-	fun processTweet(profile: String, tweet: Tweet, incomingTags: List<String>) {
+	private fun processTweet(profile: String, tweet: Tweet, incomingTags: List<String>) {
 		log.debug("processing incoming tweet from @${tweet.user.screenName}..")
 		val link = "https://twitter.com/${tweet.user.screenName}/status/${tweet.id}"
 		val retweetedUser = ""
@@ -79,12 +80,21 @@ class TwitterIngestRunner(
 						.trimMargin("|")
 						.trim()
 		try {
-			if (pinboardClient.getPosts(url = link).posts.isEmpty()) {
+
+			val bookmarks: Bookmarks =
+					try {
+						log.debug("trying to find bookmarks for '${link}'.")
+						pinboardClient.getPosts(url = link)
+					} catch (ex: java.lang.Exception) {
+						log.debug("oops! couldn't read bookmarks for link ${link}: ${ex.message}")
+						Bookmarks(Date(), null, arrayOf())
+					}
+			if (bookmarks.posts.isEmpty()) {
 
 				log.debug("fetched $link .")
 				log.debug(pbMsg)
 
-				val tags = mutableSetOf(profile, "ingest", "com/joshlong/twitter/api")
+				val tags = mutableSetOf(profile, "ingest", "twitter")
 						.apply {
 							addAll(incomingTags)
 							addAll(tweet.entities.hashtags.map { it.text }.toList())
@@ -95,7 +105,7 @@ class TwitterIngestRunner(
 						.map { it.toLowerCase() }
 
 				log.debug("about to call addPost() for URL $link")
-				val date = tweet.createdAt ?: Date()
+				val date = tweet.createdAt
 				val post = pinboardClient.addPost(url = link, description = link,
 						tags = tags.toTypedArray(), dt = date, extended = pbMsg,
 						shared = false, toread = false, replace = false)
