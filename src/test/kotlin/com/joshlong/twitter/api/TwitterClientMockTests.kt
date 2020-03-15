@@ -16,7 +16,7 @@ class TwitterClientMockTests {
 		}
 	}
 	private val tweetsJsonFile = ClassPathResource("/tweets.json")
-	private val twitterClient = BaseTwitterClient(this.fileTweetJsonProducer)
+	private val twitterClient = BaseTwitterClient({ ""/*todo*/ }, this.fileTweetJsonProducer)
 	private val username = "starbuxman"
 	private val timeline: List<Tweet>
 

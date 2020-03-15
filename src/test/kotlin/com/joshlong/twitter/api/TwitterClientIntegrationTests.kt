@@ -20,7 +20,7 @@ class TwitterClientIntegrationTests {
 	fun `should be able to get tweets from other users`() {
 		val username = "springrod"
 		val timeline = this.twitterClient.getUserTimeline(username)
-		Assert.assertTrue(timeline.size > 0)
+		Assert.assertTrue(timeline.isNotEmpty())
 		timeline.forEach {
 			println(it)
 		}

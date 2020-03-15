@@ -16,7 +16,9 @@ import java.util.*
  * @see <a href="https://developer.twitter.com/en/docs/basics/authentication/oauth-2-0/bearer-tokens">how to do OAuth authentication for Twitter's API</a>
  * @see <a href="https://developer.twitter.com/en/docs/tweets/timelines/com.joshlong.twitter.api-reference/get-statuses-user_timeline">the API for a user's timeline</a>
  */
-open class BaseTwitterClient(private val tweetProducer: (String, Long) -> String) : TwitterClient {
+open class BaseTwitterClient(
+		private val rateLimitStatusProducer: () -> String,
+		private val tweetProducer: (String, Long) -> String) : TwitterClient {
 
 	private val log = LogFactory.getLog(BaseTwitterClient::class.java)
 	private val formatterString = "EEE MMM d HH:mm:ss ZZ yyyy"
@@ -25,6 +27,23 @@ open class BaseTwitterClient(private val tweetProducer: (String, Long) -> String
 	private val formatter = SimpleDateFormat(formatterString)
 
 	override fun getUserTimeline(username: String, sinceId: Long): List<Tweet> = parseJson(tweetProducer(username, sinceId))
+
+	// todo incorporate the rate limiter insight when returning requests.
+	//  \for now the trick is to only run the SI poller every 15 minutes,
+	//  \which is the rate limiter window time anyway
+
+	private fun getRateLimiterStatusForUserTimeline() =
+			getRateLimiterStatusForFamily("statuses", "/statuses/user_timeline")
+
+	private fun getRateLimiterStatusForFamily(family: String, endpoint: String): RateLimitStatus {
+		val json = rateLimitStatusProducer()
+		val jsonNode = objectMapper.readTree(json)
+		val rlJson = jsonNode["resources"][family][endpoint]
+		val limit = rlJson["limit"].intValue()
+		val remaining = rlJson["remaining"].intValue()
+		val reset = rlJson["reset"].longValue()
+		return RateLimitStatus(limit, remaining, reset)
+	}
 
 	private fun <T> collectionFromAttribute(json: JsonNode, attribute: String, extractor: (JsonNode) -> T): List<T> =
 			if (!json.has(attribute)) emptyList() else json[attribute].map { extractor(it) }

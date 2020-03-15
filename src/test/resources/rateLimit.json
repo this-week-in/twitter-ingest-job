@@ -1,0 +1,76 @@
+{
+  "rate_limit_context" : {
+    "application" : "oREVWMAwvMVNoWhujnTXr1b3x"
+  },
+  "resources" : {
+    "users" : {
+      "/users/show/:id" : {
+        "limit" : 900,
+        "remaining" : 900,
+        "reset" : 1584269308
+      },
+      "/users/suggestions/:slug" : {
+        "limit" : 15,
+        "remaining" : 15,
+        "reset" : 1584269308
+      },
+      "/users/profile_banner" : {
+        "limit" : 180,
+        "remaining" : 180,
+        "reset" : 1584269308
+      },
+      "/users/suggestions/:slug/members" : {
+        "limit" : 15,
+        "remaining" : 15,
+        "reset" : 1584269308
+      },
+      "/users/lookup" : {
+        "limit" : 300,
+        "remaining" : 300,
+        "reset" : 1584269308
+      },
+      "/users/suggestions" : {
+        "limit" : 15,
+        "remaining" : 15,
+        "reset" : 1584269308
+      },
+      "/users/reverse_lookup" : {
+        "limit" : 15,
+        "remaining" : 15,
+        "reset" : 1584269308
+      }
+    },
+    "statuses" : {
+      "/statuses/retweeters/ids" : {
+        "limit" : 300,
+        "remaining" : 300,
+        "reset" : 1584269308
+      },
+      "/statuses/show/:id" : {
+        "limit" : 900,
+        "remaining" : 900,
+        "reset" : 1584269308
+      },
+      "/statuses/user_timeline" : {
+        "limit" : 1500,
+        "remaining" : 1499,
+        "reset" : 1584269212
+      },
+      "/statuses/retweets/:id" : {
+        "limit" : 300,
+        "remaining" : 300,
+        "reset" : 1584269308
+      },
+      "/statuses/oembed" : {
+        "limit" : 180,
+        "remaining" : 180,
+        "reset" : 1584269308
+      },
+      "/statuses/lookup" : {
+        "limit" : 300,
+        "remaining" : 300,
+        "reset" : 1584269308
+      }
+    }
+  }
+}
