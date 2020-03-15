@@ -2,8 +2,10 @@ package com.joshlong.twitter.api
 
 import org.junit.Assert
 import org.junit.Test
+import org.junit.jupiter.api.Disabled
 import org.springframework.web.client.RestTemplate
 
+@Disabled
 class TwitterClientIntegrationTests {
 
 	private val authenticatedRestTemplate =
@@ -18,7 +20,7 @@ class TwitterClientIntegrationTests {
 
 	@Test
 	fun `should be able to get tweets from other users`() {
-		val username = "springrod"
+		val username = "SpringCentral"
 		val timeline = this.twitterClient.getUserTimeline(username)
 		Assert.assertTrue(timeline.isNotEmpty())
 		timeline.forEach {
