@@ -7,11 +7,11 @@ import org.springframework.core.env.Environment
 import org.springframework.core.env.get
 import org.springframework.web.client.RestTemplate
 import twitter.BearerTokenInterceptor
-import twitter.TwitterClient
+import twitter.BaseTwitterClient
+import twitter.HttpTwitterClient
 
 @SpringBootApplication
 class TwitterClientApplication {
-
 
 	fun authenticatedRestTemplate(env: Environment) = RestTemplate()
 			.apply {
@@ -21,7 +21,7 @@ class TwitterClientApplication {
 			}
 
 	@Bean
-	fun twitterClient(env: Environment) = TwitterClient(authenticatedRestTemplate(env))
+	fun twitterClient(env: Environment) : BaseTwitterClient = HttpTwitterClient(authenticatedRestTemplate(env) )
 }
 
 fun main() {
