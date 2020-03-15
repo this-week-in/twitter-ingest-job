@@ -8,7 +8,7 @@ import java.text.SimpleDateFormat
 
 //https://developer.twitter.com/en/docs/basics/authentication/oauth-2-0/bearer-tokens
 //https://developer.twitter.com/en/docs/tweets/timelines/api-reference/get-statuses-user_timeline
-abstract class BaseTwitterClient(private val tweetProducer: (String) -> String) {
+open class BaseTwitterClient(private val tweetProducer: (String) -> String) {
 
 	private val formatter = SimpleDateFormat("EEE MMM d HH:mm:ss ZZ yyyy")
 	private val objectMapper = ObjectMapper()
@@ -26,9 +26,6 @@ abstract class BaseTwitterClient(private val tweetProducer: (String) -> String) 
 
 	private fun buildEntities(json: JsonNode) = Entities(buildHashtags(json), buildUserMentions(json), buildUrls(json))
 
-	private fun <T> readJsonProperty(
-			json: JsonNode, attr: String, converter: (JsonNode) -> T, default: () -> T) = if (json.has(attr)) converter(json[attr]) else default()
-
 	private fun buildUser(jsonNode: JsonNode): User {
 		val url: String? = jsonNode["url"]?.textValue()
 		return User(
@@ -45,7 +42,6 @@ abstract class BaseTwitterClient(private val tweetProducer: (String) -> String) 
 		val tweets = mutableListOf<Tweet>()
 		val jsonNode: JsonNode = objectMapper.readTree(json)
 		jsonNode.forEach { tweetNode ->
-			println(tweetNode.toPrettyString())
 			val tweet = Tweet(
 					this.formatter.parse(tweetNode["created_at"].textValue()),
 					tweetNode["id_str"].textValue(),
@@ -59,7 +55,6 @@ abstract class BaseTwitterClient(private val tweetProducer: (String) -> String) 
 		}
 		return tweets
 	}
-
 
 	fun getUserTimeline(username: String): List<Tweet> = parseJson(tweetProducer(username))
 }

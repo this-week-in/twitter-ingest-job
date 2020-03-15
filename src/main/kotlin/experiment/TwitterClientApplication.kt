@@ -1,8 +1,11 @@
 package experiment
 
 import org.springframework.boot.autoconfigure.SpringBootApplication
+import org.springframework.boot.context.event.ApplicationReadyEvent
 import org.springframework.boot.runApplication
+import org.springframework.context.ApplicationListener
 import org.springframework.context.annotation.Bean
+import org.springframework.context.support.beans
 import org.springframework.core.env.Environment
 import org.springframework.core.env.get
 import org.springframework.web.client.RestTemplate
@@ -25,5 +28,16 @@ class TwitterClientApplication {
 }
 
 fun main() {
-	runApplication<TwitterClientApplication>()
+	runApplication<TwitterClientApplication>() {
+		addInitializers(beans {
+			bean {
+				ApplicationListener <ApplicationReadyEvent> {
+					val httpTwitter = ref<HttpTwitterClient>()
+					httpTwitter.getUserTimeline("starbuxman").forEach {
+						println ( "the tweet is $it")
+					}
+				}
+			}
+		})
+	}
 }

@@ -3,30 +3,24 @@ package com.joshlong.twitter
 import org.junit.Test
 import org.springframework.core.io.ClassPathResource
 import org.springframework.web.client.RestTemplate
-import twitter.BearerTokenInterceptor
 import twitter.BaseTwitterClient
-import twitter.HttpTwitterClient
-import java.io.FileReader
+import twitter.BearerTokenInterceptor
+import java.io.InputStreamReader
 
 
 class TwitterApplicationTests {
 
-	private val tweetsJsonFile = ClassPathResource ("/")
+	private val tweetsJsonFile = ClassPathResource("/tweets.json")
 
 	private val fileTweetJsonProducer: (String) -> String = {
-		FileReader ("${System.getProperty("user.home")}/Desktop/tweets.json").use {
-			it.readText()
+		tweetsJsonFile.inputStream.use { inputStream ->
+			InputStreamReader(inputStream).use {
+				it.readText()
+			}
 		}
 	}
 
-
-	private val authenticatedRestTemplate = RestTemplate()
-			.apply {
-				val apiKey = System.getenv()["TWITTER_ORGANIZER_CLIENT_KEY"]!!
-				val apiKeySecret = System.getenv()["TWITTER_ORGANIZER_CLIENT_KEY_SECRET"]!!
-				interceptors.add(BearerTokenInterceptor(apiKey, apiKeySecret))
-			}
-	private val twitterClient = BaseTwitterClient(authenticatedRestTemplate)
+	private val twitterClient = BaseTwitterClient(this.fileTweetJsonProducer)
 
 	@Test
 	fun contextLoads() {
@@ -34,5 +28,4 @@ class TwitterApplicationTests {
 			println(it)
 		}
 	}
-
 }
