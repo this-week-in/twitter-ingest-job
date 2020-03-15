@@ -75,10 +75,8 @@ class TwitterUserTimelineMessageSource(
 
 	private val running = AtomicBoolean(false)
 	private val lastProcessedId = AtomicLong()
-
-	/////
 	private val prefetchThreshold = 0
-	private val lastEnqueuedId = AtomicLong()
+	private val lastEnqueuedId = AtomicLong(0)
 	private val metadataKey = "${TwitterClientApplication::class.java.name}.${username}"
 	private val tweets = LinkedBlockingQueue<Tweet>()
 
@@ -109,14 +107,12 @@ class TwitterUserTimelineMessageSource(
 			tweet = tweets.poll()
 		}
 		if (tweet != null) {
-			lastProcessedId.set(parseLong(this.getIdForTweet(tweet)))
+			lastProcessedId.set(this.getIdForTweet(tweet))
 			metadataStore.put(metadataKey, lastProcessedId.toString())
 			return messageBuilderFactory.withPayload<Tweet>(tweet).build()
 		}
 		return null
 	}
-
-	private fun parseLong(id: String) = java.lang.Long.parseLong(id)
 
 	private fun enqueueAll(tweets: List<Tweet>) =
 			tweets.sortedWith(this.tweetDateComparator).forEach { enqueue(it) }
@@ -128,7 +124,7 @@ class TwitterUserTimelineMessageSource(
 	private fun getIdForTweet(tweet: Tweet) = tweet.id
 
 	private fun enqueue(tweet: Tweet) {
-		val id = parseLong(this.getIdForTweet(tweet))
+		val id = this.getIdForTweet(tweet)
 		if (id > this.lastEnqueuedId.get()) {
 			this.tweets.add(tweet)
 			this.lastEnqueuedId.set(id)

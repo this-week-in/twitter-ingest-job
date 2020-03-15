@@ -3,7 +3,7 @@ package twitter
 import java.net.URL
 
 data class User(
-		val id: String,
+		val id: Long,
 		val name: String,
 		val screenName: String,
 		val location: String,

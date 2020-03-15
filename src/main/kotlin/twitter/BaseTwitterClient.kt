@@ -6,21 +6,29 @@ import java.lang.Boolean
 import java.net.URL
 import java.text.SimpleDateFormat
 
-//https://developer.twitter.com/en/docs/basics/authentication/oauth-2-0/bearer-tokens
-//https://developer.twitter.com/en/docs/tweets/timelines/api-reference/get-statuses-user_timeline
+
+/**
+ * A client to read tweets from a given user's timeline.
+ *
+ * @author Josh Long
+ * @see <a href="https://developer.twitter.com/en/docs/basics/authentication/oauth-2-0/bearer-tokens">how to do OAuth authentication for Twitter's API</a>
+ * @see <a href="https://developer.twitter.com/en/docs/tweets/timelines/api-reference/get-statuses-user_timeline">the API for a user's timeline</a>
+ */
 open class BaseTwitterClient(private val tweetProducer: (String, Long) -> String) : TwitterClient {
 
 	private val formatter = SimpleDateFormat("EEE MMM d HH:mm:ss ZZ yyyy")
 	private val objectMapper = ObjectMapper()
 
+	override fun getUserTimeline(username: String, sinceId: Long): List<Tweet> = parseJson(tweetProducer(username, sinceId))
+
 	private fun <T> collectionFromAttribute(json: JsonNode, attribute: String, extractor: (JsonNode) -> T): List<T> =
 			if (!json.has(attribute)) emptyList() else json[attribute].map { extractor(it) }
 
-	private fun buildHashtags(json: JsonNode) = collectionFromAttribute(json, "hashtags") { Hashtag(it["text"].textValue()) }
-
 	private fun buildUserMentions(json: JsonNode) = collectionFromAttribute(json, "user_mentions") {
-		UserMention(it["screen_name"].textValue(), it["name"].textValue(), it["id_str"].textValue())
+		UserMention(it["screen_name"].textValue(), it["name"].textValue(), java.lang.Long.parseLong(it["id_str"].textValue()))
 	}
+
+	private fun buildHashtags(json: JsonNode) = collectionFromAttribute(json, "hashtags") { Hashtag(it["text"].textValue()) }
 
 	private fun buildUrls(json: JsonNode) = collectionFromAttribute(json, "urls") { URL(it["expanded_url"].textValue()) }
 
@@ -29,7 +37,7 @@ open class BaseTwitterClient(private val tweetProducer: (String, Long) -> String
 	private fun buildUser(jsonNode: JsonNode): User {
 		val url: String? = jsonNode["url"]?.textValue()
 		return User(
-				jsonNode["id_str"].textValue(),
+				java.lang.Long.parseLong(jsonNode["id_str"].textValue()),
 				jsonNode["name"].textValue(),
 				jsonNode["screen_name"].textValue(),
 				jsonNode["location"].textValue(),
@@ -42,10 +50,9 @@ open class BaseTwitterClient(private val tweetProducer: (String, Long) -> String
 		val tweets = mutableListOf<Tweet>()
 		val jsonNode: JsonNode = objectMapper.readTree(json)
 		jsonNode.forEach { tweetNode ->
-//			println(tweetNode.toPrettyString())
 			val tweet = Tweet(
 					this.formatter.parse(tweetNode["created_at"].textValue()),
-					tweetNode["id_str"].textValue(),
+					java.lang.Long.parseLong(tweetNode["id_str"].textValue()),
 					tweetNode["text"].textValue(),
 					Boolean.parseBoolean(tweetNode["truncated"].textValue()),
 					tweetNode["in_reply_to_status_id_str"].textValue(),
@@ -56,6 +63,4 @@ open class BaseTwitterClient(private val tweetProducer: (String, Long) -> String
 		}
 		return tweets
 	}
-
-	override fun getUserTimeline(username: String, sinceId: Long): List<Tweet> = parseJson(tweetProducer(username, sinceId))
 }
