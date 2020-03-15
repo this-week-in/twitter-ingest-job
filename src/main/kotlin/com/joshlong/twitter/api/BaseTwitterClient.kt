@@ -79,15 +79,13 @@ open class BaseTwitterClient(
 		val jsonNode: JsonNode = objectMapper.readTree(json)
 
 		jsonNode.forEach { tweetNode ->
-			log("---------------")
 			val createdAt: Date =
 					if (tweetNode.has("created_at")) {
 						val textValue = tweetNode["created_at"].textValue()
-						log("the value is $textValue")
+//						log("the value is $textValue")
 						try {
 							synchronized(this.formatter) {
 								val d = formatter.parse(textValue)
-								log("parsed to $d")
 								d
 							}
 						} catch (ex: Exception) {
@@ -109,7 +107,6 @@ open class BaseTwitterClient(
 					buildUser(tweetNode["user"])
 			)
 			tweets.add(tweet)
-			log("---------------")
 		}
 		return tweets
 	}
