@@ -64,10 +64,11 @@ class TwitterIngestRunner(
 	private fun processTweet(profile: String, tweet: Tweet, incomingTags: List<String>) {
 		log.debug("processing incoming tweet from @${tweet.user.screenName}..")
 		val link = "https://twitter.com/${tweet.user.screenName}/status/${tweet.id}"
-		val retweetedUser = ""
 		val pbMsg =
 				"""
-						|@${tweet.user.screenName} ${if (tweet.isRetweet()) "re" else ""}tweeted ($link) ${if (tweet.isRetweet()) "${retweetedUser}'s tweet" else ""}:
+					  |${link}
+						|
+						|@${tweet.user.screenName} 
 						|
 						|${tweet.text.trim()}
 						|
