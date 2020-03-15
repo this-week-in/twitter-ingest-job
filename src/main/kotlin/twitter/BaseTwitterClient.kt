@@ -8,7 +8,7 @@ import java.text.SimpleDateFormat
 
 //https://developer.twitter.com/en/docs/basics/authentication/oauth-2-0/bearer-tokens
 //https://developer.twitter.com/en/docs/tweets/timelines/api-reference/get-statuses-user_timeline
-open class BaseTwitterClient(private val tweetProducer: (String) -> String) {
+open class BaseTwitterClient(private val tweetProducer: (String, Long) -> String) : TwitterClient {
 
 	private val formatter = SimpleDateFormat("EEE MMM d HH:mm:ss ZZ yyyy")
 	private val objectMapper = ObjectMapper()
@@ -42,6 +42,7 @@ open class BaseTwitterClient(private val tweetProducer: (String) -> String) {
 		val tweets = mutableListOf<Tweet>()
 		val jsonNode: JsonNode = objectMapper.readTree(json)
 		jsonNode.forEach { tweetNode ->
+//			println(tweetNode.toPrettyString())
 			val tweet = Tweet(
 					this.formatter.parse(tweetNode["created_at"].textValue()),
 					tweetNode["id_str"].textValue(),
@@ -56,5 +57,5 @@ open class BaseTwitterClient(private val tweetProducer: (String) -> String) {
 		return tweets
 	}
 
-	fun getUserTimeline(username: String): List<Tweet> = parseJson(tweetProducer(username))
+	override fun getUserTimeline(username: String, sinceId: Long): List<Tweet> = parseJson(tweetProducer(username, sinceId))
 }
