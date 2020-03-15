@@ -10,8 +10,8 @@ import org.springframework.boot.ApplicationRunner
 import org.springframework.context.ApplicationEventPublisher
 import org.springframework.context.ApplicationEventPublisherAware
 import org.springframework.integration.dsl.IntegrationFlows
-import org.springframework.integration.dsl.SourcePollingChannelAdapterSpec
 import org.springframework.integration.dsl.context.IntegrationFlowContext
+import org.springframework.integration.handler.GenericHandler
 import org.springframework.integration.metadata.MetadataStore
 import org.springframework.util.ReflectionUtils
 import pinboard.PinboardClient
@@ -19,33 +19,35 @@ import java.time.Instant
 import java.time.ZoneId
 import java.util.*
 import java.util.concurrent.Executor
+import java.util.function.Consumer
 
 class TwitterIngestRunner(
-		val profileToTags: Map<String, List<String>>,
-		val ifc: IntegrationFlowContext,
-		val pc: PinboardClient,
-		val tc: TwitterClient,
-		val metadataStore: MetadataStore,
-		val executor: Executor,
-		val twitterConfiguration: TwitterConfiguration) :
+		private val profileToTags: Map<String, List<String>>,
+		private val integrationFlowContext: IntegrationFlowContext,
+		private val pinboardClient: PinboardClient,
+		private val twitterClient: TwitterClient,
+		private val metadataStore: MetadataStore,
+		private val executor: Executor,
+		private val integrationConfiguration: IntegrationConfiguration) :
 		ApplicationRunner, ApplicationEventPublisherAware {
 
 	private val log = LogFactory.getLog(javaClass)
 	private var publisher: ApplicationEventPublisher? = null
 
-
-	protected fun subscribeToTweetsFromProfile(profile: String, tags: List<String>) {
+	private fun subscribeToTweetsFromProfile(profile: String, tags: List<String>) {
 
 		executor.execute {
 			val id = profile.filter { it.isLetterOrDigit() }
 			log.info("${profile} subscription thread started at ${Instant.now().atZone(ZoneId.systemDefault())}")
-			val msgSource = this.twitterConfiguration.twitterMessageSource(profile, metadataStore, tc)
-			val flow = IntegrationFlows.from(msgSource, Consumer<SourcePollingChannelAdapterSpec> { it.poller({ it.fixedRate(60 * 15 * 1000) }) })
-					.handle(GenericHandler<Tweet> { msg, headers ->
+			val msgSource = this.integrationConfiguration.twitterMessageSource(profile, metadataStore, twitterClient)
+			val flow = IntegrationFlows
+					.from(msgSource, Consumer { it.poller { it.fixedRate(60 * 15 * 1000) } })
+					.handle(GenericHandler<Tweet> { msg, _ ->
 						processTweet(profile, msg, tags)
+						null
 					})
 					.get()
-			ifc.registration(flow)
+			integrationFlowContext.registration(flow)
 					.id(id)
 					.register()
 			log.info("${profile} subscription thread finished at ${Instant.now().atZone(ZoneId.systemDefault())}")
@@ -77,7 +79,7 @@ class TwitterIngestRunner(
 						.trimMargin("|")
 						.trim()
 		try {
-			if (pc.getPosts(url = link).posts.isEmpty()) {
+			if (pinboardClient.getPosts(url = link).posts.isEmpty()) {
 
 				log.debug("fetched $link .")
 				log.debug(pbMsg)
@@ -94,7 +96,7 @@ class TwitterIngestRunner(
 
 				log.debug("about to call addPost() for URL $link")
 				val date = tweet.createdAt ?: Date()
-				val post = pc.addPost(url = link, description = link,
+				val post = pinboardClient.addPost(url = link, description = link,
 						tags = tags.toTypedArray(), dt = date, extended = pbMsg,
 						shared = false, toread = false, replace = false)
 				if (post) {

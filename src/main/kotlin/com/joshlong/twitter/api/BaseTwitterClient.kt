@@ -56,7 +56,7 @@ open class BaseTwitterClient(private val tweetProducer: (String, Long) -> String
 	private fun parseJson(json: String): List<Tweet> {
 		val tweets = mutableListOf<Tweet>()
 		val jsonNode: JsonNode = objectMapper.readTree(json)
-		logJson(jsonNode.textValue())
+//		logJson(jsonNode.textValue())
 		jsonNode.forEach { tweetNode ->
 			val tweet = Tweet(
 					this.formatter.parse(tweetNode["created_at"].textValue()),

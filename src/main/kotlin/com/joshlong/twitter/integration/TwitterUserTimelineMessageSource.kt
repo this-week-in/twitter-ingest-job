@@ -84,7 +84,7 @@ class TwitterUserTimelineMessageSource(
 	private fun refreshTweetQueueIfNecessary() {
 		try {
 			if (tweets.size <= this.prefetchThreshold) {
-				val tweets: List<Tweet> = twitterClient.getUserTimeline(username, lastEnqueuedId.get())
+				val tweets: List<Tweet> = twitterClient.getUserTimeline(username, lastEnqueuedId.get() )
 				if (!CollectionUtils.isEmpty(tweets)) {
 					enqueueAll(tweets)
 				}

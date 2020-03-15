@@ -14,8 +14,11 @@ import org.springframework.core.env.get
 import org.springframework.data.redis.connection.RedisConnectionFactory
 import org.springframework.data.redis.core.StringRedisTemplate
 import org.springframework.integration.context.IntegrationContextUtils
+import org.springframework.integration.dsl.context.IntegrationFlowContext
 import org.springframework.integration.metadata.MetadataStore
 import org.springframework.web.client.RestTemplate
+import pinboard.PinboardClient
+import java.util.concurrent.Executor
 
 @Configuration
 class IntegrationConfiguration {
@@ -59,8 +62,7 @@ class IntegrationConfiguration {
 			}
 
 	@Bean
-	fun twitterClient(env: Environment): BaseTwitterClient =
-			HttpTwitterClient(authenticatedRestTemplate(env))
+	fun twitterClient(env: Environment): BaseTwitterClient = HttpTwitterClient(authenticatedRestTemplate(env))
 
 	@Bean
 	fun stringRedisTemplate(rcf: RedisConnectionFactory) = StringRedisTemplate(rcf)
@@ -71,5 +73,9 @@ class IntegrationConfiguration {
 			profile: String,
 			metadataStore: MetadataStore, twitterClient: TwitterClient) =
 			TwitterUserTimelineMessageSource(profile, metadataStore, twitterClient)
+
+	@Bean
+	fun runner(ifc: IntegrationFlowContext, pc: PinboardClient, tc: TwitterClient, metadataStore: MetadataStore, executor: Executor) =
+			TwitterIngestRunner(profileToTags, ifc, pc, tc, metadataStore, executor, this)
 
 }

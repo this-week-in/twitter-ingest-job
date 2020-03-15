@@ -14,13 +14,9 @@ import java.net.URI
 import java.nio.charset.Charset
 import java.util.concurrent.atomic.AtomicReference
 
-class BearerTokenInterceptor(
-		private val key: String, private val secret: String) : ClientHttpRequestInterceptor {
+class BearerTokenInterceptor(private val key: String, private val secret: String) : ClientHttpRequestInterceptor {
 
 	private val accessTokenReference = AtomicReference<String>()
-
-	// this is used only to obtain the token. it should not be the
-	// same RT instance as the one being used to make OAuth-authenticated calls.
 	private val accessTokenTemplate = RestTemplate()
 
 	// todo figure out how rate limiting and timeouts interacts with this test.
@@ -48,7 +44,7 @@ class BearerTokenInterceptor(
 						setBasicAuth(encodedCredentials);
 					}
 				}
-		val uri = "https://com.joshlong.twitter.api.twitter.com/oauth2/token?grant_type=client_credentials"
+		val uri = "https://api.twitter.com/oauth2/token?grant_type=client_credentials"
 		val request: RequestEntity<Void> = RequestEntity.post(URI.create(uri)).headers(httpHeaders).build()
 		val responseEntityJsonNode = restTemplate.postForEntity(uri, request, JsonNode::class.java)
 		val jsonNode = responseEntityJsonNode.body!!

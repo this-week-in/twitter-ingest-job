@@ -1,14 +1,12 @@
-package com.joshlong.twitter
+package com.joshlong.twitter.api
 
 import org.junit.Assert
 import org.junit.Test
 import org.springframework.core.io.ClassPathResource
-import com.joshlong.twitter.api.BaseTwitterClient
-import com.joshlong.twitter.api.Tweet
 import java.io.InputStreamReader
 
 
-class TwitterApplicationTests {
+class TwitterClientMockTests {
 
 	private val fileTweetJsonProducer: (String, Long) -> String = { _, _ ->
 		tweetsJsonFile.inputStream.use { inputStream ->
