@@ -1,7 +1,8 @@
-package twitter
+package com.joshlong.twitter.api
 
 import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.ObjectMapper
+import java.io.FileWriter
 import java.lang.Boolean
 import java.net.URL
 import java.text.SimpleDateFormat
@@ -12,7 +13,7 @@ import java.text.SimpleDateFormat
  *
  * @author Josh Long
  * @see <a href="https://developer.twitter.com/en/docs/basics/authentication/oauth-2-0/bearer-tokens">how to do OAuth authentication for Twitter's API</a>
- * @see <a href="https://developer.twitter.com/en/docs/tweets/timelines/api-reference/get-statuses-user_timeline">the API for a user's timeline</a>
+ * @see <a href="https://developer.twitter.com/en/docs/tweets/timelines/com.joshlong.twitter.api-reference/get-statuses-user_timeline">the API for a user's timeline</a>
  */
 open class BaseTwitterClient(private val tweetProducer: (String, Long) -> String) : TwitterClient {
 
@@ -46,9 +47,16 @@ open class BaseTwitterClient(private val tweetProducer: (String, Long) -> String
 		)
 	}
 
+	private fun logJson(str: String) {
+		FileWriter("${System.getenv()["HOME"]}/Desktop/tweets.json").use {
+			it.write(str)
+		}
+	}
+
 	private fun parseJson(json: String): List<Tweet> {
 		val tweets = mutableListOf<Tweet>()
 		val jsonNode: JsonNode = objectMapper.readTree(json)
+		logJson(jsonNode.textValue())
 		jsonNode.forEach { tweetNode ->
 			val tweet = Tweet(
 					this.formatter.parse(tweetNode["created_at"].textValue()),

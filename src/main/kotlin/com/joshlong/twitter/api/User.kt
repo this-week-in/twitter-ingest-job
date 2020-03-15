@@ -1,4 +1,4 @@
-package twitter
+package com.joshlong.twitter.api
 
 import java.net.URL
 

@@ -1,4 +1,4 @@
-package twitter
+package com.joshlong.twitter.api
 
 import com.fasterxml.jackson.databind.JsonNode
 import org.springframework.http.HttpHeaders
@@ -48,7 +48,7 @@ class BearerTokenInterceptor(
 						setBasicAuth(encodedCredentials);
 					}
 				}
-		val uri = "https://api.twitter.com/oauth2/token?grant_type=client_credentials"
+		val uri = "https://com.joshlong.twitter.api.twitter.com/oauth2/token?grant_type=client_credentials"
 		val request: RequestEntity<Void> = RequestEntity.post(URI.create(uri)).headers(httpHeaders).build()
 		val responseEntityJsonNode = restTemplate.postForEntity(uri, request, JsonNode::class.java)
 		val jsonNode = responseEntityJsonNode.body!!

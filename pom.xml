@@ -45,9 +45,9 @@
             <version>${commons-pool2.version}</version>
         </dependency>
         <!--    <dependency>
-                <groupId>org.springframework.integration</groupId>
-                <artifactId>spring-integration-social-twitter</artifactId>
-                <version>${spring-integration.version}</version>
+                <groupId>org.springframework.com.joshlong.twitter.integration</groupId>
+                <artifactId>spring-com.joshlong.twitter.integration-social-twitter</artifactId>
+                <version>${spring-com.joshlong.twitter.integration.version}</version>
             </dependency>-->
 
      <!--   <dependency>

@@ -1,4 +1,4 @@
-package twitter
+package com.joshlong.twitter.api
 
 import java.util.*
 
@@ -11,3 +11,5 @@ data class Tweet(
 		val entities: Entities,
 		val user: User
 )
+
+fun Tweet.isRetweet(): Boolean = true
