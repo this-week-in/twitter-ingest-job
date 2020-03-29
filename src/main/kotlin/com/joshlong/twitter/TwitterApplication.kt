@@ -11,8 +11,4 @@ import org.springframework.integration.context.IntegrationContextUtils
 @EnableConfigurationProperties(IngestTwitterProperties::class)
 class TwitterApplication {
 
-	@Bean(IntegrationContextUtils.METADATA_STORE_BEAN_NAME)
-	fun redisMetadataStore(stringRedisTemplate: StringRedisTemplate) =
-			RedisMetadataStore(stringRedisTemplate)
-
 }

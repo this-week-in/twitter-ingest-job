@@ -5,10 +5,8 @@ import com.joshlong.twitter.api.BaseTwitterClient
 import com.joshlong.twitter.api.BearerTokenInterceptor
 import com.joshlong.twitter.api.HttpTwitterClient
 import com.joshlong.twitter.api.TwitterClient
-import org.springframework.cloud.CloudFactory
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
-import org.springframework.context.annotation.Profile
 import org.springframework.context.annotation.Scope
 import org.springframework.data.redis.connection.RedisConnectionFactory
 import org.springframework.data.redis.core.StringRedisTemplate
@@ -50,14 +48,6 @@ class IntegrationConfiguration(private val ingestTwitterProperties: IngestTwitte
 		val bearerTokenInterceptor = BearerTokenInterceptor(ingestTwitterProperties.consumerKey, ingestTwitterProperties.consumerSecret)
 		interceptors.add(bearerTokenInterceptor)
 	}
-
-	@Bean
-	@Profile("cloud")
-	fun cloud() = CloudFactory().cloud
-
-	@Bean
-	@Profile("cloud")
-	fun redisConnectionFactory() = cloud().getSingletonServiceConnector(RedisConnectionFactory::class.java, null)
 
 	@Bean(IntegrationContextUtils.METADATA_STORE_BEAN_NAME)
 	fun redisMetadataStore(stringRedisTemplate: StringRedisTemplate) = RedisMetadataStore(stringRedisTemplate)
