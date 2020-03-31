@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 
+source "$(cd $(dirname $0) && pwd)/env.sh"
+
 APP_NAME=twitter-ingest-job
 JOB_NAME=${APP_NAME}
 SCHEDULER_SERVICE_NAME=scheduler-joshlong
