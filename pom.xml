@@ -136,8 +136,9 @@
             
         </plugins>
     </build>
-    <repositories>
+  
 
+ <repositories>
         <repository>
             <snapshots>
                 <enabled>false</enabled>
@@ -156,19 +157,8 @@
                 https://cloudnativejava.jfrog.io/cloudnativejava/libs-snapshot
             </url>
         </repository>
-
-        <repository>
-            <id>spring-milestones</id>
-            <name>Spring Milestones</name>
-            <url>https://repo.spring.io/milestone</url>
-            <snapshots>
-                <enabled>false</enabled>
-            </snapshots>
-        </repository>
     </repositories>
-
     <pluginRepositories>
-
         <pluginRepository>
             <snapshots>
                 <enabled>false</enabled>
@@ -187,6 +177,7 @@
                 https://cloudnativejava.jfrog.io/cloudnativejava/plugins-snapshot
             </url>
         </pluginRepository>
-
     </pluginRepositories>
+
+
 </project>
