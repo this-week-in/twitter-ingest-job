@@ -1,9 +1,5 @@
 package com.joshlong.twitter.integration
 
-import com.joshlong.twitter.IngestTwitterProperties
-import com.joshlong.twitter.api.BaseTwitterClient
-import com.joshlong.twitter.api.BearerTokenInterceptor
-import com.joshlong.twitter.api.HttpTwitterClient
 import com.joshlong.twitter.api.TwitterClient
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
@@ -13,12 +9,11 @@ import org.springframework.data.redis.core.StringRedisTemplate
 import org.springframework.integration.context.IntegrationContextUtils
 import org.springframework.integration.dsl.context.IntegrationFlowContext
 import org.springframework.integration.metadata.MetadataStore
-import org.springframework.web.client.RestTemplate
 import pinboard.PinboardClient
 import java.util.concurrent.Executor
 
 @Configuration
-class IntegrationConfiguration(private val ingestTwitterProperties: IngestTwitterProperties) {
+class IntegrationConfiguration {
 
 	private val profileToTags: Map<String, List<String>> = mapOf(
 			"springcentral" to listOf("spring", "pivotal", "twis", "ingest"),
@@ -44,16 +39,8 @@ class IntegrationConfiguration(private val ingestTwitterProperties: IngestTwitte
 			"spencerbgibb" to listOf("spring", "ingest", "spring-boot", "spring-cloud", "ingest")
 	)
 
-	private val authenticatedRestTemplate = RestTemplate().apply {
-		val bearerTokenInterceptor = BearerTokenInterceptor(ingestTwitterProperties.consumerKey, ingestTwitterProperties.consumerSecret)
-		interceptors.add(bearerTokenInterceptor)
-	}
-
 	@Bean(IntegrationContextUtils.METADATA_STORE_BEAN_NAME)
 	fun redisMetadataStore(stringRedisTemplate: StringRedisTemplate) = RedisMetadataStore(stringRedisTemplate)
-
-	@Bean
-	fun twitterClient(ingestTwitterProperties: IngestTwitterProperties): BaseTwitterClient = HttpTwitterClient(this.authenticatedRestTemplate)
 
 	@Bean
 	fun stringRedisTemplate(rcf: RedisConnectionFactory) = StringRedisTemplate(rcf)

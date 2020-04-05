@@ -48,8 +48,6 @@ class TwitterUserTimelineMessageSource(
 		this.running.set(false)
 	}
 
-	/////
-
 	override fun receive(): Message<Tweet>? {
 		var tweet: Tweet? = tweets.poll()
 		if (tweet == null) {
