@@ -49,9 +49,7 @@
 
         <dependency>
             <groupId>com.joshlong.pinboard</groupId>
-            <artifactId>
-                blocking-client
-            </artifactId>
+            <artifactId>blocking-client</artifactId>
             <version>0.0.3-SNAPSHOT</version>
         </dependency>
 
