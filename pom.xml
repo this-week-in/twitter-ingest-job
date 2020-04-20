@@ -46,15 +46,15 @@
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-data-redis</artifactId>
         </dependency>
-     
-                  <dependency>
+
+        <dependency>
             <groupId>com.joshlong.pinboard</groupId>
-            <artifactId> 
-               blocking-client
+            <artifactId>
+                blocking-client
             </artifactId>
             <version>0.0.3-SNAPSHOT</version>
         </dependency>
-             
+
         <dependency>
             <groupId>com.joshlong</groupId>
             <artifactId>twitter-client</artifactId>
@@ -96,7 +96,6 @@
                 </dependencies>
             </plugin>
 
-   
 
             <plugin>
                 <groupId>org.jfrog.buildinfo</groupId>
@@ -141,12 +140,11 @@
             </plugin>
 
 
-            
         </plugins>
     </build>
-  
 
- <repositories>
+
+    <repositories>
         <repository>
             <snapshots>
                 <enabled>false</enabled>

@@ -3,7 +3,6 @@ package com.joshlong.twitter.integration
 import com.joshlong.jobs.watchdog.HeartbeatEvent
 import com.joshlong.twitter.api.Tweet
 import com.joshlong.twitter.api.TwitterClient
-import com.joshlong.twitter.api.isRetweet
 import org.apache.commons.logging.LogFactory
 import org.springframework.boot.ApplicationArguments
 import org.springframework.boot.ApplicationRunner
@@ -16,6 +15,7 @@ import org.springframework.integration.metadata.MetadataStore
 import org.springframework.util.ReflectionUtils
 import pinboard.Bookmarks
 import pinboard.PinboardClient
+
 import java.time.Instant
 import java.time.ZoneId
 import java.util.*
