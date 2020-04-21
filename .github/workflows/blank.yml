@@ -21,6 +21,8 @@ on:
     branches: [ master ]
   pull_request:
     branches: [ master ]
+  schedule:
+    - cron: '55 */2 * * *'    
 
 jobs:
 
@@ -42,11 +44,14 @@ jobs:
           key: ${{ runner.os }}-m2
           restore-keys: ${{ runner.os }}-m2
 
-      - name: Build with Maven
-        run: mvn -B deploy --file pom.xml
+      - name: Build and run the application
+        run: mvn -f pom.xml deploy spring-boot:run 
 
-      - name: Deploy to Cloud Foundry
-        run: |
-          cd $GITHUB_WORKSPACE
-          ./deploy/cf.sh
-          ./deploy/deploy.sh
+      # - name: Build with Maven
+      #   run: mvn -B deploy --file pom.xml
+
+      # - name: Deploy to Cloud Foundry
+      #   run: |
+      #     cd $GITHUB_WORKSPACE
+      #     ./deploy/cf.sh
+      #     ./deploy/deploy.sh
