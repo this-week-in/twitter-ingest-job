@@ -22,7 +22,7 @@ import java.util.*
 import java.util.concurrent.Executor
 import java.util.function.Consumer
 
-class TwitterIngestRunner(
+open class TwitterIngestRunner(
 		private val profileToTags: Map<String, List<String>>,
 		private val integrationFlowContext: IntegrationFlowContext,
 		private val pinboardClient: PinboardClient,
