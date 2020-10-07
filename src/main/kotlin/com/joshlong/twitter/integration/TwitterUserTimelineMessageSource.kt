@@ -57,7 +57,7 @@ class TwitterUserTimelineMessageSource(
 		if (tweet != null) {
 			lastProcessedId.set(this.getIdForTweet(tweet))
 			metadataStore.put(metadataKey, lastProcessedId.toString())
-			return messageBuilderFactory.withPayload<Tweet>(tweet).build()
+			return messageBuilderFactory.withPayload(tweet).build()
 		}
 		return null
 	}
@@ -87,7 +87,8 @@ class TwitterUserTimelineMessageSource(
 					enqueueAll(tweets)
 				}
 			}
-		} catch (exception: Exception) {
+		}
+		catch (exception: Exception) {
 			throw MessagingException("failed while polling Twitter for user $username", exception)
 		}
 	}

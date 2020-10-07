@@ -86,10 +86,12 @@ open class TwitterIngestRunner(
 					try {
 						log.debug("trying to find bookmarks for '${link}'.")
 						pinboardClient.getPosts(url = link)
-					} catch (ex: java.lang.Exception) {
+					}
+					catch (ex: java.lang.Exception) {
 						log.debug("oops! couldn't read bookmarks for link ${link}: ${ex.message}")
 						Bookmarks(Date(), null, arrayOf())
 					}
+
 			if (bookmarks.posts.isEmpty()) {
 
 				log.debug("fetched $link .")
@@ -107,13 +109,14 @@ open class TwitterIngestRunner(
 
 				log.debug("about to call addPost() for URL $link")
 				val date = tweet.createdAt
-				val post = pinboardClient.addPost(url = link, description = link,
+				val post = pinboardClient.addPost(url = link, description = pbMsg ,
 						tags = tags.toTypedArray(), dt = date, extended = pbMsg,
 						shared = false, toread = false, replace = false)
 				if (post) {
 					log.debug("added $link to Pinboard @ ${Instant.now().atZone(ZoneId.systemDefault())}")
 				}
-			} else {
+			}
+			else {
 				log.debug("processed ${link} already.")
 			}
 			this.publisher!!.publishEvent(HeartbeatEvent())
