@@ -9,23 +9,24 @@ env:
   REDIS_PW: ${{ secrets.REDIS_PW }}
   TWITTER_TWI_CLIENT_KEY: ${{ secrets.TWITTER_TWI_CLIENT_KEY }}
   TWITTER_TWI_CLIENT_KEY_SECRET: ${{ secrets.TWITTER_TWI_CLIENT_KEY_SECRET }}
+  SPRING_PROFILES_ACTIVE: ci
+  GCLOUD_ZONE : ${{ secrets.GCLOUD_ZONE  }}
+  GCLOUD_PROJECT: ${{ secrets.GCLOUD_PROJECT  }}
+  GCLOUD_SA_KEY: ${{ secrets.GCLOUD_SA_KEY }}
+  GKE_CLUSTER_NAME : ${{ secrets.GKE_CLUSTER_NAME  }}
   PINBOARD_TOKEN: ${{ secrets.PINBOARD_TOKEN }}
-  CF_USER: ${{ secrets.CF_USER }}
-  CF_PASSWORD: ${{ secrets.CF_PASSWORD }}
-  CF_SPACE: ${{ secrets.CF_SPACE }}
-  CF_API: ${{ secrets.CF_API }}
-  CF_ORG: ${{ secrets.CF_ORG  }}
+  ARTIFACTORY_API_TOKEN_SECRET: ${{ secrets.ARTIFACTORY_API_TOKEN_SECRET }}
   ARTIFACTORY_USERNAME: ${{ secrets.ARTIFACTORY_USERNAME  }}
   ARTIFACTORY_PASSWORD: ${{ secrets.ARTIFACTORY_PASSWORD  }}
-  SPRING_PROFILES_ACTIVE: ci
+  ACTIONS_ALLOW_UNSECURE_COMMANDS: true
 
 on:
   push:
     branches: [ master ]
   pull_request:
     branches: [ master ]
-  schedule:
-    - cron: '55 */2 * * *'    
+#  schedule:
+#    - cron: '55 */2 * * *'
 
 jobs:
 
@@ -45,8 +46,6 @@ jobs:
           gcloud --quiet auth configure-docker
           gcloud container clusters get-credentials $GKE_CLUSTER_NAME --zone "$GCLOUD_ZONE" --project $GCLOUD_PROJECT
 
-
-
       - uses: actions/checkout@v2
 
       - name: Set up JDK 15
@@ -64,11 +63,3 @@ jobs:
       - name: Deploy
         run: cd $GITHUB_WORKSPACE/.github/workflows ; ./deploy.sh
 
-#      - name: Build and run the application
-#        run: mvn -f pom.xml deploy spring-boot:run
-
-      # - name: Deploy to Cloud Foundry
-      #   run: |
-      #     cd $GITHUB_WORKSPACE
-      #     ./deploy/cf.sh
-      #     ./deploy/deploy.sh
