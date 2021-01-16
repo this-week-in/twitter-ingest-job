@@ -62,7 +62,7 @@ open class TwitterIngestRunner(
 	}
 
 	private fun processTweet(profile: String, tweet: Tweet, incomingTags: List<String>) {
-		log.debug("processing incoming tweet from @${tweet.user.screenName}..")
+		log.info("processing incoming tweet from @${tweet.user.screenName}..")
 		val link = "https://twitter.com/${tweet.user.screenName}/status/${tweet.id}"
 		val pbMsg =
 				"""
