@@ -119,11 +119,12 @@ open class TwitterIngestRunner(
 			else {
 				log.debug("processed ${link} already.")
 			}
-			this.publisher!!.publishEvent(HeartbeatEvent())
+
 		} catch (ex: Exception) {
 			log.error("couldn't process $link", ex)
 			ReflectionUtils.rethrowException(ex)
 		}
+		this.publisher!!.publishEvent(HeartbeatEvent())
 	}
 
 	override fun setApplicationEventPublisher(applicationEventPublisher: ApplicationEventPublisher) {
