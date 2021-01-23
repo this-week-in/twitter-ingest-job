@@ -23,49 +23,57 @@ import java.util.concurrent.Executor
 import java.util.function.Consumer
 
 open class TwitterIngestRunner(
-		private val profileToTags: Map<String, List<String>>,
-		private val integrationFlowContext: IntegrationFlowContext,
-		private val pinboardClient: PinboardClient,
-		private val twitterClient: TwitterClient,
-		private val metadataStore: MetadataStore,
-		private val executor: Executor,
-		private val integrationConfiguration: IntegrationConfiguration) :
-		ApplicationRunner, ApplicationEventPublisherAware {
+    private val profileToTags: Map<String, Collection<String>>,
+    private val pollRateInSeconds: Long,
+    private val integrationFlowContext: IntegrationFlowContext,
+    private val pinboardClient: PinboardClient,
+    private val twitterClient: TwitterClient,
+    private val metadataStore: MetadataStore,
+    private val executor: Executor,
+    private val integrationConfiguration: IntegrationConfiguration
 
-	private val log = LogFactory.getLog(javaClass)
-	private var publisher: ApplicationEventPublisher? = null
+) :
+    ApplicationRunner, ApplicationEventPublisherAware {
 
-	private fun subscribeToTweetsFromProfile(profile: String, tags: List<String>) {
+    private val log = LogFactory.getLog(javaClass)
+    private var publisher: ApplicationEventPublisher? = null
 
-		executor.execute {
-			val id = profile.filter { it.isLetterOrDigit() }
-			log.info("${profile} subscription thread started at ${Instant.now().atZone(ZoneId.systemDefault())}")
-			val msgSource = this.integrationConfiguration.twitterMessageSource(profile, metadataStore, twitterClient)
-			val flow = IntegrationFlows
-					.from(msgSource, Consumer { it.poller { it.fixedRate(60 * 15 * 1000) } })
-					.handle(GenericHandler<Tweet> { msg, _ ->
-						processTweet(profile, msg, tags)
-						null
-					})
-					.get()
-			integrationFlowContext.registration(flow)
-					.id(id)
-					.register()
-			log.info("${profile} subscription thread finished at ${Instant.now().atZone(ZoneId.systemDefault())}")
-		}
-	}
+    private fun subscribeToTweetsFromProfile(profile: String, tags: Collection<String>) {
 
-	override fun run(args: ApplicationArguments) {
-		profileToTags.forEach {
-			this.subscribeToTweetsFromProfile(it.key, it.value)
-		}
-	}
+        executor.execute {
+            val id = profile.filter { it.isLetterOrDigit() }
+            log.info("${profile} subscription thread started at ${Instant.now().atZone(ZoneId.systemDefault())}")
+            val msgSource =
+                this.integrationConfiguration.twitterMessageSource(profile, this.metadataStore, this.twitterClient)
+            val flow = IntegrationFlows
+                .from(
+                    msgSource,
+                    Consumer { it.poller { it.fixedRate(this.pollRateInSeconds * 1000) } }
+                )
+                .handle(GenericHandler<Tweet> { msg, _ ->
+                    processTweet(profile, msg, tags)
+                    null
+                })
+                .get()
+            integrationFlowContext //
+                .registration(flow) //
+                .id(id) //
+                .register()
+            log.info("${profile} subscription thread finished at ${Instant.now().atZone(ZoneId.systemDefault())}")
+        }
+    }
 
-	private fun processTweet(profile: String, tweet: Tweet, incomingTags: List<String>) {
-		log.info("processing incoming tweet from @${tweet.user.screenName}..")
-		val link = "https://twitter.com/${tweet.user.screenName}/status/${tweet.id}"
-		val pbMsg =
-				"""
+    override fun run(args: ApplicationArguments) {
+        profileToTags.forEach {
+            this.subscribeToTweetsFromProfile(it.key, it.value)
+        }
+    }
+
+    private fun processTweet(profile: String, tweet: Tweet, incomingTags: Collection<String>) {
+        log.info("processing incoming tweet from @${tweet.user.screenName}..")
+        val link = "https://twitter.com/${tweet.user.screenName}/status/${tweet.id}"
+        val pbMsg =
+            """
 					  |${link}
 						|
 						|@${tweet.user.screenName} 
@@ -78,56 +86,56 @@ open class TwitterIngestRunner(
 						|
 						|${tweet.entities.userMentions.map { it.screenName }.joinToString(" ").trim()}
 				"""
-						.trimMargin("|")
-						.trim()
-		try {
+                .trimMargin("|")
+                .trim()
+        try {
 
-			val bookmarks: Bookmarks =
-					try {
-						log.debug("trying to find bookmarks for '${link}'.")
-						pinboardClient.getPosts(url = link)
-					}
-					catch (ex: java.lang.Exception) {
-						log.debug("oops! couldn't read bookmarks for link ${link}: ${ex.message}")
-						Bookmarks(Date(), null, arrayOf())
-					}
+            val bookmarks: Bookmarks =
+                try {
+                    log.debug("trying to find bookmarks for '${link}'.")
+                    pinboardClient.getPosts(url = link)
+                } catch (ex: java.lang.Exception) {
+                    log.debug("oops! couldn't read bookmarks for link ${link}: ${ex.message}")
+                    Bookmarks(Date(), null, arrayOf())
+                }
 
-			if (bookmarks.posts.isEmpty()) {
+            if (bookmarks.posts.isEmpty()) {
 
-				log.debug("fetched $link .")
-				log.debug(pbMsg)
+                log.debug("fetched $link .")
+                log.debug(pbMsg)
 
-				val tags = mutableSetOf(profile, "ingest", "twitter")
-						.apply {
-							addAll(incomingTags)
-							addAll(tweet.entities.hashtags.map { it.text }.toList())
-						}
-						.map {
-							if (it.startsWith("#")) it.substring(1) else it
-						}
-						.map { it.toLowerCase() }
+                val tags = mutableSetOf(profile, "ingest", "twitter")
+                    .apply {
+                        addAll(incomingTags)
+                        addAll(tweet.entities.hashtags.map { it.text }.toList())
+                    }
+                    .map {
+                        if (it.startsWith("#")) it.substring(1) else it
+                    }
+                    .map { it.toLowerCase() }
 
-				log.debug("about to call addPost() for URL $link")
-				val date = tweet.createdAt
-				val post = pinboardClient.addPost(url = link, description = pbMsg ,
-						tags = tags.toTypedArray(), dt = date, extended = pbMsg,
-						shared = false, toread = false, replace = false)
-				if (post) {
-					log.debug("added $link to Pinboard @ ${Instant.now().atZone(ZoneId.systemDefault())}")
-				}
-			}
-			else {
-				log.debug("processed ${link} already.")
-			}
+                log.debug("about to call addPost() for URL $link")
+                val date = tweet.createdAt
+                val post = pinboardClient.addPost(
+                    url = link, description = pbMsg,
+                    tags = tags.toTypedArray(), dt = date, extended = pbMsg,
+                    shared = false, toread = false, replace = false
+                )
+                if (post) {
+                    log.debug("added $link to Pinboard @ ${Instant.now().atZone(ZoneId.systemDefault())}")
+                }
+            } else {
+                log.debug("processed ${link} already.")
+            }
 
-		} catch (ex: Exception) {
-			log.error("couldn't process $link", ex)
-			ReflectionUtils.rethrowException(ex)
-		}
-		this.publisher!!.publishEvent(HeartbeatEvent())
-	}
+        } catch (ex: Exception) {
+            log.error("couldn't process $link", ex)
+            ReflectionUtils.rethrowException(ex)
+        }
+        this.publisher!!.publishEvent(HeartbeatEvent())
+    }
 
-	override fun setApplicationEventPublisher(applicationEventPublisher: ApplicationEventPublisher) {
-		this.publisher = applicationEventPublisher
-	}
+    override fun setApplicationEventPublisher(applicationEventPublisher: ApplicationEventPublisher) {
+        this.publisher = applicationEventPublisher
+    }
 }
