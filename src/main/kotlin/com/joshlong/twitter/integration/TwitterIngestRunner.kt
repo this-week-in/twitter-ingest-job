@@ -108,10 +108,8 @@ open class TwitterIngestRunner(
                 }
 
             if (bookmarks.posts.isEmpty()) {
-
                 log.debug("fetched $link .")
                 log.debug(pbMsg)
-
                 val tags = mutableSetOf<String>()
                     .apply {
                         addAll(listOf("ingest", "twitter"))
