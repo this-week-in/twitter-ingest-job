@@ -8,6 +8,7 @@ import org.springframework.boot.ApplicationArguments
 import org.springframework.boot.ApplicationRunner
 import org.springframework.context.ApplicationEventPublisher
 import org.springframework.context.ApplicationEventPublisherAware
+import org.springframework.integration.core.GenericSelector
 import org.springframework.integration.dsl.IntegrationFlows
 import org.springframework.integration.dsl.context.IntegrationFlowContext
 import org.springframework.integration.handler.GenericHandler
@@ -23,7 +24,7 @@ import java.util.concurrent.Executor
 import java.util.function.Consumer
 
 open class TwitterIngestRunner(
-    private val profileToTags: Map<String, Collection<String>>,
+    private val profileToTags: Map<String, Map<String, Collection<String>>>,
     private val pollRateInSeconds: Long,
     private val integrationFlowContext: IntegrationFlowContext,
     private val pinboardClient: PinboardClient,
@@ -31,14 +32,14 @@ open class TwitterIngestRunner(
     private val metadataStore: MetadataStore,
     private val executor: Executor,
     private val integrationConfiguration: IntegrationConfiguration
-
-) :
-    ApplicationRunner, ApplicationEventPublisherAware {
+) : ApplicationRunner, ApplicationEventPublisherAware {
 
     private val log = LogFactory.getLog(javaClass)
     private var publisher: ApplicationEventPublisher? = null
 
-    private fun subscribeToTweetsFromProfile(profile: String, tags: Collection<String>) {
+    private fun subscribeToTweetsFromProfile(profile: String, tagsAndFilters: Map<String, Collection<String>>) {
+
+        log.info("going to register a Twitter inbound adapter for ${profile} having tags ${tagsAndFilters}")
 
         executor.execute {
             val id = profile.filter { it.isLetterOrDigit() }
@@ -50,8 +51,14 @@ open class TwitterIngestRunner(
                     msgSource,
                     Consumer { it.poller { it.fixedRate(this.pollRateInSeconds * 1000) } }
                 )
+                .filter { tweet: Tweet ->
+
+                    return@filter tagsAndFilters.isEmpty() || tagsAndFilters.values.any { predicates ->
+                        return@filter predicates.any { predicate -> tweet.text.contains(predicate) }
+                    }
+                }
                 .handle(GenericHandler<Tweet> { msg, _ ->
-                    processTweet(profile, msg, tags)
+                    processTweet(profile, msg, tagsAndFilters)
                     null
                 })
                 .get()
@@ -65,11 +72,12 @@ open class TwitterIngestRunner(
 
     override fun run(args: ApplicationArguments) {
         profileToTags.forEach {
+
             this.subscribeToTweetsFromProfile(it.key, it.value)
         }
     }
 
-    private fun processTweet(profile: String, tweet: Tweet, incomingTags: Collection<String>) {
+    private fun processTweet(profile: String, tweet: Tweet, tagsAndFilters: Map<String, Collection<String>>) {
         log.info("processing incoming tweet from @${tweet.user.screenName}..")
         val link = "https://twitter.com/${tweet.user.screenName}/status/${tweet.id}"
         val pbMsg =
@@ -104,17 +112,25 @@ open class TwitterIngestRunner(
                 log.debug("fetched $link .")
                 log.debug(pbMsg)
 
-                val tags = mutableSetOf(profile, "ingest", "twitter")
+                val tags = mutableSetOf<String>()
                     .apply {
-                        addAll(incomingTags)
-                        addAll(tweet.entities.hashtags.map { it.text }.toList())
+                        addAll(listOf("ingest", "twitter"))
+
+                        tagsAndFilters.forEach { t, filters ->
+                            val tag = t.toLowerCase().trim()
+                            for (f in filters) {
+                                if (tweet.text.toLowerCase().contains(f.toLowerCase())) {
+                                    add(tag)
+                                }
+                            }
+                        }
                     }
                     .map {
                         if (it.startsWith("#")) it.substring(1) else it
                     }
-                    .map { it.toLowerCase() }
+                    .map { it.toLowerCase().trim() }
 
-                log.debug("about to call addPost() for URL $link")
+                log.debug("about to call addPost() for URL $link, adding the following tags: ${tags}")
                 val date = tweet.createdAt
                 val post = pinboardClient.addPost(
                     url = link, description = pbMsg,

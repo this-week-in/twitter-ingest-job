@@ -84,17 +84,17 @@ class IntegrationConfiguration {
 @ConfigurationProperties("ingest.twitter")
 class IngestProperties(
     val pollRateInSeconds: Long = 1,
-    var encodedMappingConfiguration : String? = null,
+    var encodedMappingConfiguration: String? = null,
     val om: ObjectMapper
 ) {
 
 
-    val mappings: Map<String, Collection<String>>
+    val mappings: Map<String,  Map <String, Collection<String>>>
         get() {
             if (encodedMappingConfiguration != null) {
                 val decoded = Base64.getDecoder().decode(encodedMappingConfiguration)
-                val mappingsMap: Map<String, Collection<String>> =
-                    om.readValue(decoded, object : TypeReference<Map<String, Collection<String>>>() {})
+                val mappingsMap: Map<String,  Map <String, Collection<String>>>  =
+                    om.readValue(decoded, object : TypeReference< Map<String,  Map <String, Collection<String>>> >() {})
                 return mappingsMap
             }
 
